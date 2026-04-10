@@ -1,0 +1,83 @@
+name: drivometry
+description: A vehicle expense and maintenance tracking app.
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+  flutter: ">=3.27.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  flutter_bloc: ^8.1.6
+  bloc: ^8.1.4
+
+  # Dependency Injection
+  get_it: ^8.0.0
+
+  # Local Database (Hive)
+  hive_flutter: ^1.1.0
+  path: ^1.9.0
+  path_provider: ^2.1.4
+
+  # Code Generation (runtime annotations only)
+
+  # Notifications
+  flutter_local_notifications: ^17.2.4
+  timezone: ^0.9.4
+
+  # Charts
+  fl_chart: ^0.69.0
+
+  # Date & Formatting
+  intl: ^0.19.0
+
+  # Navigation
+  go_router: ^14.6.1
+
+  # Icons & Assets
+  cupertino_icons: ^1.0.8
+  flutter_svg: ^2.0.10+1
+
+  # Preferences
+  shared_preferences: ^2.3.3
+
+  # UUID
+  uuid: ^4.5.1
+
+  # Image picker (e.g. receipt for fuel log)
+  image_picker: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  bloc_test: ^9.1.7
+  mocktail: ^1.0.4
+  flutter_launcher_icons: ^0.14.3
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/
+
+# App icon (from assets/images/splash_logo.png, generated from splash_logo.svg)
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/images/splash_logo.png
+  remove_alpha_ios: true
+  adaptive_icon_background: "#2F80ED"
+  adaptive_icon_foreground: assets/images/splash_logo.png
+
+# Splash screen (same logo as app icon)
+flutter_native_splash:
+  color: "#2F80ED"
+  image: assets/images/splash_logo.png
+  android_12:
+    color: "#2F80ED"
+    image: assets/images/splash_logo.png

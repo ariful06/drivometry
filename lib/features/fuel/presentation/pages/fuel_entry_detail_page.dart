@@ -1,0 +1,476 @@
+import 'dart:io';
+
+import 'package:flutter/material.dart';
+
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/formatters.dart';
+import '../../../../injection_container.dart';
+import '../../../vehicles/domain/entities/vehicle.dart';
+import '../../../vehicles/domain/usecases/vehicle_usecases.dart';
+import '../../domain/entities/fuel_entry.dart';
+
+/// Passed via GoRouter `extra` when opening [FuelEntryDetailPage].
+class FuelEntryDetailArgs {
+  const FuelEntryDetailArgs({
+    required this.entry,
+    this.previousEntry,
+  });
+
+  final FuelEntry entry;
+  /// Chronologically older refill; used for period distance / km per L like the list tile.
+  final FuelEntry? previousEntry;
+}
+
+/// Read-only fuel log with receipt when available.
+class FuelEntryDetailPage extends StatefulWidget {
+  const FuelEntryDetailPage({required this.args, super.key});
+
+  final FuelEntryDetailArgs args;
+
+  @override
+  State<FuelEntryDetailPage> createState() => _FuelEntryDetailPageState();
+}
+
+class _FuelEntryDetailPageState extends State<FuelEntryDetailPage> {
+  late final Future<Vehicle?> _vehicleFuture;
+  late final Future<bool> _receiptFuture;
+
+  FuelEntryDetailArgs get args => widget.args;
+
+  FuelEntry get _e => args.entry;
+
+  double? get _periodDistanceKm {
+    final prev = args.previousEntry;
+    if (prev == null) return null;
+    final d = _e.odometer - prev.odometer;
+    return d > 0 ? d : null;
+  }
+
+  double? get _periodKmPerLiter {
+    final dist = _periodDistanceKm;
+    final prev = args.previousEntry;
+    if (dist == null || prev == null || prev.liters <= 0) return null;
+    return dist / prev.liters;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _vehicleFuture = sl<GetVehicleById>()(_e.vehicleId);
+    final p = _e.receiptImagePath;
+    _receiptFuture = (p == null || p.isEmpty)
+        ? Future.value(false)
+        : Future.value(File(p).existsSync());
+  }
+
+  void _openReceiptFullscreen(BuildContext context, String path) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        fullscreenDialog: true,
+        builder: (ctx) {
+          return Scaffold(
+            backgroundColor: Colors.black,
+            appBar: AppBar(
+              backgroundColor: Colors.black,
+              foregroundColor: Colors.white,
+              elevation: 0,
+            ),
+            body: InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4,
+              child: Center(
+                child: Image.file(
+                  File(path),
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Text(
+                      'Could not load image',
+                      style: TextStyle(color: Colors.white70),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Fuel log'),
+      ),
+      body: FutureBuilder<Vehicle?>(
+        future: _vehicleFuture,
+        builder: (context, vehicleSnap) {
+          final vehicleLabel = vehicleSnap.data == null
+              ? _e.vehicleId
+              : '${vehicleSnap.data!.name} (${vehicleSnap.data!.licensePlate})';
+
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+            children: [
+              _HeaderCard(
+                colors: colors,
+                theme: theme,
+                date: _e.date,
+                totalCost: _e.totalCost,
+                vehicleLabel: vehicleLabel,
+              ),
+              const SizedBox(height: 24),
+              _SectionTitle(theme: theme, label: 'Fill-up'),
+              _DetailRow(
+                label: 'Liters',
+                value: Formatters.formatLiters(_e.liters),
+              ),
+              _DetailRow(
+                label: 'Price / L',
+                value: Formatters.formatCurrency(_e.costPerLiter),
+              ),
+              _DetailRow(
+                label: 'Total',
+                value: Formatters.formatCurrency(_e.totalCost),
+                valueColor: colors.fuelColor,
+              ),
+              _DetailRow(
+                label: 'Full tank',
+                value: _e.isFullTank ? 'Yes' : 'No',
+              ),
+              if (_e.tripDistance != null && _e.tripDistance! > 0)
+                _DetailRow(
+                  label: 'Trip (logged)',
+                  value: Formatters.formatDistance(_e.tripDistance!),
+                ),
+              const SizedBox(height: 16),
+              _SectionTitle(theme: theme, label: 'Odometer & driving'),
+              _DetailRow(
+                label: 'Odometer',
+                value: Formatters.formatDistance(_e.odometer),
+              ),
+              if (_e.distanceDriven != null && _e.distanceDriven! > 0)
+                _DetailRow(
+                  label: 'Distance (logged)',
+                  value: Formatters.formatDistance(_e.distanceDriven!),
+                ),
+              if (_periodDistanceKm != null)
+                _DetailRow(
+                  label: 'Since previous fill',
+                  value: Formatters.formatDistance(_periodDistanceKm!),
+                ),
+              if (_periodKmPerLiter != null)
+                _DetailRow(
+                  label: 'Period economy',
+                  value:
+                      '${Formatters.formatFuelEfficiency(_periodKmPerLiter!)} '
+                      '(distance since last fill / liters from previous log)',
+                  valueColor: colors.maintenanceColor,
+                ),
+              if (_e.fuelEfficiency != null && _e.fuelEfficiency! > 0)
+                _DetailRow(
+                  label: 'Efficiency (this fill)',
+                  value: Formatters.formatFuelEfficiency(_e.fuelEfficiency!),
+                ),
+              if (_e.calculatedMileage != null &&
+                  _e.calculatedMileage! > 0 &&
+                  (_e.fuelEfficiency == null ||
+                      (_e.calculatedMileage! - _e.fuelEfficiency!).abs() >
+                          0.001))
+                _DetailRow(
+                  label: 'Calculated',
+                  value: Formatters.formatFuelEfficiency(_e.calculatedMileage!),
+                ),
+              const SizedBox(height: 16),
+              _SectionTitle(theme: theme, label: 'Receipt'),
+              FutureBuilder<bool>(
+                future: _receiptFuture,
+                builder: (context, snap) {
+                  if (snap.connectionState != ConnectionState.done) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(
+                        child: SizedBox(
+                          width: 28,
+                          height: 28,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                    );
+                  }
+                  if (snap.data != true || _e.receiptImagePath == null) {
+                    return Text(
+                      'No receipt attached',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colors.textSecondary,
+                      ),
+                    );
+                  }
+                  final path = _e.receiptImagePath!;
+                  return _ReceiptCard(
+                    colors: colors,
+                    path: path,
+                    onTap: () => _openReceiptFullscreen(context, path),
+                  );
+                },
+              ),
+              if (_e.notes != null && _e.notes!.trim().isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _SectionTitle(theme: theme, label: 'Notes'),
+                Text(
+                  _e.notes!.trim(),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: colors.textSecondary,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _HeaderCard extends StatelessWidget {
+  const _HeaderCard({
+    required this.colors,
+    required this.theme,
+    required this.date,
+    required this.totalCost,
+    required this.vehicleLabel,
+  });
+
+  final AppColors colors;
+  final ThemeData theme;
+  final DateTime date;
+  final double totalCost;
+  final String vehicleLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = theme.brightness == Brightness.dark;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: isDark
+              ? [
+                  colors.fuelColor.withValues(alpha: 0.22),
+                  colors.fuelColor.withValues(alpha: 0.08),
+                ]
+              : [
+                  colors.fuelColor.withValues(alpha: 0.16),
+                  colors.fuelColor.withValues(alpha: 0.05),
+                ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: colors.fuelColor.withValues(alpha: 0.28)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            Formatters.formatDate(date),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: colors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            Formatters.formatCurrency(totalCost),
+            style: theme.textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: colors.fuelColor,
+              letterSpacing: -0.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(
+                Icons.directions_car_outlined,
+                size: 18,
+                color: colors.textSecondary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  vehicleLabel,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReceiptCard extends StatelessWidget {
+  const _ReceiptCard({
+    required this.colors,
+    required this.path,
+    required this.onTap,
+  });
+
+  final AppColors colors;
+  final String path;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: colors.fuelColor.withValues(alpha: 0.25),
+            ),
+            color: theme.colorScheme.surfaceContainerHighest.withValues(
+              alpha: 0.35,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ClipRRect(
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(15)),
+                child: AspectRatio(
+                  aspectRatio: 4 / 3,
+                  child: Image.file(
+                    File(path),
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => ColoredBox(
+                      color: colors.fuelColor.withValues(alpha: 0.08),
+                      child: Center(
+                        child: Icon(
+                          Icons.broken_image_outlined,
+                          size: 40,
+                          color: colors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.zoom_in_map_rounded,
+                      size: 20,
+                      color: colors.fuelColor,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Tap to zoom and pan',
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: colors.fuelColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      color: colors.textSecondary,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({required this.theme, required this.label});
+
+  final ThemeData theme;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(
+        label,
+        style: theme.textTheme.titleSmall?.copyWith(
+          fontWeight: FontWeight.w700,
+          color: theme.colorScheme.primary,
+        ),
+      ),
+    );
+  }
+}
+
+class _DetailRow extends StatelessWidget {
+  const _DetailRow({
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
+
+  final String label;
+  final String value;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.extension<AppColors>()!;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 132,
+            child: Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colors.textSecondary,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: valueColor,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
