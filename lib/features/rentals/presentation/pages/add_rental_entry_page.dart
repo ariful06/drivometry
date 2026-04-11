@@ -851,6 +851,7 @@ class _AddRentalEntryPageState extends State<AddRentalEntryPage> {
       } else {
         await sl<AddRental>()(entry);
       }
+      await _syncVehicleOdometerAfterRentalSave(entry);
       if (mounted) context.pop();
     } catch (e) {
       if (!mounted) return;
@@ -859,5 +860,25 @@ class _AddRentalEntryPageState extends State<AddRentalEntryPage> {
         SnackBar(content: Text('Failed to save rental: $e')),
       );
     }
+  }
+
+  /// Adds this rental's trip distance (or the edit delta) to the vehicle odometer.
+  Future<void> _syncVehicleOdometerAfterRentalSave(RentalEntry entry) async {
+    final vehicle = await sl<GetVehicleById>()(entry.vehicleId);
+    if (vehicle == null) return;
+    final double deltaTripKm;
+    if (_isEditMode && widget.initialEntry != null) {
+      deltaTripKm = entry.totalKm - widget.initialEntry!.totalKm;
+    } else {
+      deltaTripKm = entry.totalKm;
+    }
+    if (deltaTripKm == 0) return;
+    final updatedReading = vehicle.currentOdometer + deltaTripKm;
+    final clampedReading = updatedReading < vehicle.initialOdometer
+        ? vehicle.initialOdometer
+        : updatedReading;
+    await sl<UpdateVehicle>()(
+      vehicle.copyWith(currentOdometer: clampedReading),
+    );
   }
 }

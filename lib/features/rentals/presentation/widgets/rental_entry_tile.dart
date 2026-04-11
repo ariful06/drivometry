@@ -6,6 +6,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../domain/entities/rental_entry.dart';
 import '../cubits/rental_cubit.dart';
+import 'rental_billing_update_dialog.dart';
 
 class RentalEntryTile extends StatelessWidget {
   const RentalEntryTile({required this.entry, super.key});
@@ -30,7 +31,7 @@ class RentalEntryTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final theme = Theme.of(context);
-    final dueColor = entry.dueAmount <= 0 ? colors.success : colors.warning;
+    final showDueChip = entry.dueAmount > 0;
 
     return Dismissible(
       key: Key(entry.id),
@@ -146,12 +147,13 @@ class RentalEntryTile extends StatelessWidget {
                         value: Formatters.formatDistance(entry.totalKm),
                         color: colors.maintenanceColor,
                       ),
-                      _chip(
-                        context,
-                        label: 'Due',
-                        value: Formatters.formatCurrency(entry.dueAmount),
-                        color: dueColor,
-                      ),
+                      if (showDueChip)
+                        _chip(
+                          context,
+                          label: 'Due',
+                          value: Formatters.formatCurrency(entry.dueAmount),
+                          color: colors.warning,
+                        ),
                       _chip(
                         context,
                         label: 'Status',
@@ -185,6 +187,18 @@ class RentalEntryTile extends StatelessWidget {
                       style: theme.textTheme.bodySmall?.copyWith(color: colors.textSecondary),
                     ),
                   ],
+                  const SizedBox(height: 10),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: IconButton.filledTonal(
+                      tooltip: 'Update trip',
+                      style: IconButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      onPressed: () => showRentalBillingUpdateDialog(context, entry),
+                      icon: const Icon(Icons.edit_note_outlined, size: 22),
+                    ),
+                  ),
                 ],
               ),
             ),

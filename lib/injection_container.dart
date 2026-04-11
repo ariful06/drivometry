@@ -155,9 +155,12 @@ Future<void> initDependencies() async {
   sl.registerFactory(
     () => RentalCubit(
       watchAllRentals: sl<WatchAllRentals>(),
+      getAllRentals: sl<GetAllRentals>(),
       addRental: sl<AddRental>(),
       updateRental: sl<UpdateRental>(),
       deleteRental: sl<DeleteRental>(),
+      getVehicleById: sl<GetVehicleById>(),
+      updateVehicle: sl<UpdateVehicle>(),
     ),
   );
 
