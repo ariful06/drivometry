@@ -53,6 +53,10 @@ class MaintenanceRepositoryImpl implements MaintenanceRepository {
           );
 
   @override
+  Stream<void> watchMaintenanceChanges() =>
+      _dataSource.watchMaintenanceStore();
+
+  @override
   Future<double> getTotalMaintenanceCostByVehicle(String vehicleId) =>
       _dataSource.getTotalCostByVehicle(vehicleId);
 

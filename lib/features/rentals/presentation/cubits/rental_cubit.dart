@@ -51,7 +51,7 @@ class RentalCubit extends Cubit<RentalState> {
           ),
         );
       },
-      onError: (Object e) => emit(RentalError(e.toString())),
+      onError: (Object error) => emit(RentalError(error.toString())),
     );
   }
 
@@ -119,8 +119,8 @@ class RentalCubit extends Cubit<RentalState> {
         vehicleId: vehicleId,
         deltaTripKm: totalKm,
       );
-    } catch (e) {
-      emit(RentalError(e.toString()));
+    } catch (error) {
+      emit(RentalError(error.toString()));
     }
   }
 
@@ -158,8 +158,8 @@ class RentalCubit extends Cubit<RentalState> {
         vehicleId: entry.vehicleId,
         deltaTripKm: entry.totalKm - previousTotalKm,
       );
-    } catch (e) {
-      emit(RentalError(e.toString()));
+    } catch (error) {
+      emit(RentalError(error.toString()));
     }
   }
 
@@ -240,8 +240,8 @@ class RentalCubit extends Cubit<RentalState> {
   Future<void> deleteRental(String id) async {
     try {
       await _deleteRental(id);
-    } catch (e) {
-      emit(RentalError(e.toString()));
+    } catch (error) {
+      emit(RentalError(error.toString()));
     }
   }
 

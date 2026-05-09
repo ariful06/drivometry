@@ -1,8 +1,8 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../../core/database/hive_storage.dart';
-import 'fuel_local_datasource.dart';
 import '../models/fuel_entry_model.dart';
+import 'fuel_local_datasource.dart';
 
 class FuelHiveDataSource implements FuelLocalDataSource {
   FuelHiveDataSource() : _box = fuelEntriesBox();
@@ -12,21 +12,28 @@ class FuelHiveDataSource implements FuelLocalDataSource {
   List<FuelEntryModel> _byVehicle(String vehicleId) {
     final list = <FuelEntryModel>[];
     for (final key in _box.keys) {
-      final v = _box.get(key);
-      if (v is Map) {
-        final map = Map<String, dynamic>.from(v);
+      final storedValue = _box.get(key);
+      if (storedValue is Map) {
+        final map = Map<String, dynamic>.from(storedValue);
         if ((map['vehicle_id'] as String?) != vehicleId) continue;
         try {
           list.add(FuelEntryModel.fromMap(map));
         } catch (_) {}
       }
     }
-    list.sort((a, b) => b.date.compareTo(a.date));
+    list.sort(
+      (leftEntry, rightEntry) =>
+          rightEntry.date.compareTo(leftEntry.date),
+    );
     return list;
   }
 
   double _sumTotalCost(Iterable<FuelEntryModel> entries) {
-    return entries.fold<double>(0, (s, e) => s + e.totalCost);
+    return entries.fold<double>(
+      0,
+      (runningCostSum, fuelModel) =>
+          runningCostSum + fuelModel.totalCost,
+    );
   }
 
   @override
@@ -67,13 +74,16 @@ class FuelHiveDataSource implements FuelLocalDataSource {
     final toStr = to.toIso8601String();
     final list = <FuelEntryModel>[];
     for (final key in _box.keys) {
-      final v = _box.get(key);
-      if (v is Map) {
+      final storedValue = _box.get(key);
+      if (storedValue is Map) {
         try {
-          final e = FuelEntryModel.fromMap(Map<String, dynamic>.from(v));
-          final d = e.date.toIso8601String();
-          if (d.compareTo(fromStr) >= 0 && d.compareTo(toStr) <= 0) {
-            list.add(e);
+          final fuelModel = FuelEntryModel.fromMap(
+            Map<String, dynamic>.from(storedValue),
+          );
+          final entryDateIso = fuelModel.date.toIso8601String();
+          if (entryDateIso.compareTo(fromStr) >= 0 &&
+              entryDateIso.compareTo(toStr) <= 0) {
+            list.add(fuelModel);
           }
         } catch (_) {}
       }
@@ -89,9 +99,10 @@ class FuelHiveDataSource implements FuelLocalDataSource {
   ) async {
     final fromStr = from.toIso8601String();
     final toStr = to.toIso8601String();
-    final list = _byVehicle(vehicleId).where((e) {
-      final d = e.date.toIso8601String();
-      return d.compareTo(fromStr) >= 0 && d.compareTo(toStr) <= 0;
+    final list = _byVehicle(vehicleId).where((fuelModel) {
+      final entryDateIso = fuelModel.date.toIso8601String();
+      return entryDateIso.compareTo(fromStr) >= 0 &&
+          entryDateIso.compareTo(toStr) <= 0;
     });
     return _sumTotalCost(list);
   }

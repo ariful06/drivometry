@@ -53,66 +53,153 @@ class VehicleDashboardMetrics {
   static const int serviceSoonDays = 7;
   static const int serviceSoonKm = 500;
 
+  /// Lines / labels from [description] and [title], lowercased for matching.
+  static Set<String> _descriptorTokens(MaintenanceEntry maintenanceEntry) {
+    final rawDescription = maintenanceEntry.description.trim();
+    if (rawDescription.isEmpty) {
+      final titleLower = maintenanceEntry.title.trim().toLowerCase();
+      return titleLower.isEmpty ? <String>{} : {titleLower};
+    }
+    return rawDescription
+        .split(RegExp(r'[\n,;]'))
+        .map((fragment) => fragment.trim().toLowerCase())
+        .where((fragment) => fragment.isNotEmpty)
+        .toSet();
+  }
+
+  /// True when [newer] is a later log for the same maintenance line as [older]
+  /// (e.g. replaced oil change vs previous oil change record).
+  static bool _sameMaintenanceLine(MaintenanceEntry older, MaintenanceEntry newer) {
+    if (older.type != newer.type) return false;
+    if (older.type == 'repair') {
+      final olderTitleLower = older.title.trim().toLowerCase();
+      final newerTitleLower = newer.title.trim().toLowerCase();
+      if (olderTitleLower.isNotEmpty &&
+          newerTitleLower.isNotEmpty &&
+          olderTitleLower != newerTitleLower) {
+        return false;
+      }
+      final olderTokens = _descriptorTokens(older);
+      final newerTokens = _descriptorTokens(newer);
+      if (olderTokens.isEmpty && newerTokens.isEmpty) {
+        return olderTitleLower == newerTitleLower;
+      }
+      for (final token in olderTokens) {
+        if (newerTokens.contains(token)) return true;
+      }
+      return false;
+    }
+    final olderTokens = _descriptorTokens(older);
+    final newerTokens = _descriptorTokens(newer);
+    if (olderTokens.isEmpty || newerTokens.isEmpty) {
+      final olderTitleLower = older.title.trim().toLowerCase();
+      final newerTitleLower = newer.title.trim().toLowerCase();
+      return olderTitleLower.isNotEmpty && olderTitleLower == newerTitleLower;
+    }
+    for (final token in olderTokens) {
+      if (newerTokens.contains(token)) return true;
+    }
+    return false;
+  }
+
+  static bool _isSuperseded(
+    MaintenanceEntry candidateEntry,
+    List<MaintenanceEntry> allEntries,
+  ) {
+    for (final otherEntry in allEntries) {
+      if (otherEntry.id == candidateEntry.id) continue;
+      if (!otherEntry.serviceDate.isAfter(candidateEntry.serviceDate)) continue;
+      if (_sameMaintenanceLine(candidateEntry, otherEntry)) return true;
+    }
+    return false;
+  }
+
+  /// Entries that should drive dashboard service alerts: has a next target,
+  /// not dismissed in Reminders, and not replaced by a newer same-line log.
+  static List<MaintenanceEntry> entriesForSchedulingAlerts(
+    List<MaintenanceEntry> maintenanceEntries,
+  ) {
+    return maintenanceEntries.where((entry) {
+      if (entry.reminderAcknowledged) return false;
+      if (entry.nextServiceDate == null && entry.nextServiceOdometer == null) {
+        return false;
+      }
+      if (_isSuperseded(entry, maintenanceEntries)) return false;
+      return true;
+    }).toList();
+  }
+
   static MaintenanceEntry? _pickClosestUpcoming(
     List<MaintenanceEntry> entries,
     Vehicle vehicle,
   ) {
-    MaintenanceEntry? bestDate;
-    DateTime? bestDateValue;
-    for (final e in entries) {
-      final d = e.nextServiceDate;
-      if (d == null) continue;
-      final dOnly = DateTime(d.year, d.month, d.day);
-      if (bestDateValue == null || dOnly.isBefore(bestDateValue)) {
-        bestDateValue = dOnly;
-        bestDate = e;
+    MaintenanceEntry? entryWithClosestDate;
+    DateTime? closestNextServiceCalendarDay;
+    for (final entry in entries) {
+      final nextServiceDateTime = entry.nextServiceDate;
+      if (nextServiceDateTime == null) continue;
+      final calendarDay = DateTime(
+        nextServiceDateTime.year,
+        nextServiceDateTime.month,
+        nextServiceDateTime.day,
+      );
+      if (closestNextServiceCalendarDay == null ||
+          calendarDay.isBefore(closestNextServiceCalendarDay)) {
+        closestNextServiceCalendarDay = calendarDay;
+        entryWithClosestDate = entry;
       }
     }
-    if (bestDate != null) return bestDate;
+    if (entryWithClosestDate != null) return entryWithClosestDate;
 
-    final cur = vehicle.currentOdometer.ceil();
-    MaintenanceEntry? bestOdo;
-    int? bestRemaining;
-    for (final e in entries) {
-      final o = e.nextServiceOdometer;
-      if (o == null) continue;
-      final rem = o - cur;
-      if (bestRemaining == null || rem < bestRemaining) {
-        bestRemaining = rem;
-        bestOdo = e;
+    final currentKm = vehicle.currentOdometer.ceil();
+    MaintenanceEntry? entryWithClosestOdometerDue;
+    int? smallestKmRemainingUntilDue;
+    for (final entry in entries) {
+      final thresholdKm = entry.nextServiceOdometer;
+      if (thresholdKm == null) continue;
+      final kmRemaining = thresholdKm - currentKm;
+      if (smallestKmRemainingUntilDue == null ||
+          kmRemaining < smallestKmRemainingUntilDue) {
+        smallestKmRemainingUntilDue = kmRemaining;
+        entryWithClosestOdometerDue = entry;
       }
     }
-    return bestOdo;
+    return entryWithClosestOdometerDue;
   }
 
-  static String? _formatClosest(MaintenanceEntry? e) {
-    if (e == null) return null;
-    final parts = <String>[e.title];
-    if (e.nextServiceDate != null) {
-      final d = e.nextServiceDate!;
-      parts.add('${d.day}/${d.month}/${d.year}');
-    } else if (e.nextServiceOdometer != null) {
-      parts.add('@ ${e.nextServiceOdometer} km');
+  static String? _formatClosest(MaintenanceEntry? entry) {
+    if (entry == null) return null;
+    final parts = <String>[entry.title];
+    if (entry.nextServiceDate != null) {
+      final nextDate = entry.nextServiceDate!;
+      parts.add('${nextDate.day}/${nextDate.month}/${nextDate.year}');
+    } else if (entry.nextServiceOdometer != null) {
+      parts.add('@ ${entry.nextServiceOdometer} km');
     }
     return parts.join(' · ');
   }
 
-  static String? _closestServiceRemaining(MaintenanceEntry? e, Vehicle vehicle) {
-    if (e == null) return null;
+  static String? _closestServiceRemaining(MaintenanceEntry? entry, Vehicle vehicle) {
+    if (entry == null) return null;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    if (e.nextServiceDate != null) {
-      final d = e.nextServiceDate!;
-      final dOnly = DateTime(d.year, d.month, d.day);
-      final diff = dOnly.difference(today).inDays;
+    if (entry.nextServiceDate != null) {
+      final nextDate = entry.nextServiceDate!;
+      final nextDueCalendarDay = DateTime(
+        nextDate.year,
+        nextDate.month,
+        nextDate.day,
+      );
+      final diff = nextDueCalendarDay.difference(today).inDays;
       if (diff < 0) {
         return 'Overdue by ${-diff} day${(-diff) == 1 ? '' : 's'}';
       }
       if (diff == 0) return 'Due today';
       return '$diff day${diff == 1 ? '' : 's'} remaining';
     }
-    if (e.nextServiceOdometer != null) {
-      final rem = e.nextServiceOdometer! - vehicle.currentOdometer.ceil();
+    if (entry.nextServiceOdometer != null) {
+      final rem =
+          entry.nextServiceOdometer! - vehicle.currentOdometer.ceil();
       if (rem < 0) {
         return 'Overdue by ${-rem} km';
       }
@@ -122,17 +209,21 @@ class VehicleDashboardMetrics {
     return null;
   }
 
-  static bool _isServiceUrgent(MaintenanceEntry e, Vehicle vehicle) {
+  static bool _isServiceUrgent(MaintenanceEntry entry, Vehicle vehicle) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final d = e.nextServiceDate;
-    if (d != null) {
-      final diff = DateTime(d.year, d.month, d.day).difference(today).inDays;
+    final nextServiceCalendarDate = entry.nextServiceDate;
+    if (nextServiceCalendarDate != null) {
+      final diff =
+          DateTime(nextServiceCalendarDate.year, nextServiceCalendarDate.month,
+                  nextServiceCalendarDate.day,)
+              .difference(today)
+              .inDays;
       if (diff <= serviceSoonDays) return true;
     }
-    final o = e.nextServiceOdometer;
-    if (o != null) {
-      final rem = o - vehicle.currentOdometer.ceil();
+    final nextDueOdometerKm = entry.nextServiceOdometer;
+    if (nextDueOdometerKm != null) {
+      final rem = nextDueOdometerKm - vehicle.currentOdometer.ceil();
       if (rem <= serviceSoonKm) return true;
     }
     return false;
@@ -147,20 +238,22 @@ class VehicleDashboardMetrics {
     final getRentals = sl<GetRentalsByVehicle>();
 
     final entries = await getMaintenance(vehicle.id);
-    final closest = _pickClosestUpcoming(entries, vehicle);
+    final scheduleEntries = entriesForSchedulingAlerts(entries);
+    final closest = _pickClosestUpcoming(scheduleEntries, vehicle);
     final closestServiceSummary = _formatClosest(closest);
     final closestServiceRemaining = _closestServiceRemaining(closest, vehicle);
-    final urgentEntries = entries.where((e) => _isServiceUrgent(e, vehicle)).toList();
+    final urgentEntries =
+        scheduleEntries.where((entry) => _isServiceUrgent(entry, vehicle)).toList();
     final serviceAttentionCount = urgentEntries.length;
-    final urgentTitles = urgentEntries.map((e) {
-      final type = e.type.trim();
-      final title = e.title.trim();
-      final description = e.description.trim();
+    final urgentTitles = urgentEntries.map((entry) {
+      final type = entry.type.trim();
+      final title = entry.title.trim();
+      final description = entry.description.trim();
       final itemName = description.isNotEmpty ? description : title;
       if (type.isNotEmpty && itemName.isNotEmpty) return '$type: $itemName';
       if (itemName.isNotEmpty) return itemName;
       return type;
-    }).where((t) => t.isNotEmpty).toSet().toList();
+    }).where((trimmedTitle) => trimmedTitle.isNotEmpty).toSet().toList();
     String? serviceAttentionItemsLabel;
     if (urgentTitles.isNotEmpty) {
       final preview = urgentTitles.take(3).join(', ');
@@ -173,8 +266,11 @@ class VehicleDashboardMetrics {
 
     var partWarnings = 0;
     final parts = await partRepo.getByVehicle(vehicle.id);
-    for (final p in parts) {
-      final remaining = partsLifecycle.remainingLifeKm(p, vehicle.currentOdometer);
+    for (final replacementRecord in parts) {
+      final remaining = partsLifecycle.remainingLifeKm(
+        replacementRecord,
+        vehicle.currentOdometer,
+      );
       if (remaining < partWarningThresholdKm && remaining >= 0) {
         partWarnings++;
       }
@@ -187,15 +283,15 @@ class VehicleDashboardMetrics {
     var rentalIncome = 0.0;
     var paid = 0;
     var partial = 0;
-    for (final r in rentals) {
+    for (final rental in rentals) {
       rentalIncome += RentalEntry.billableTripAmount(
-        rentFareAmount: r.rentFareAmount,
-        fuelCost: r.fuelCost,
-        customerPaidFuelBill: r.customerPaidFuelBill,
+        rentFareAmount: rental.rentFareAmount,
+        fuelCost: rental.fuelCost,
+        customerPaidFuelBill: rental.customerPaidFuelBill,
       );
-      if (r.paymentStatus == 'Paid') {
+      if (rental.paymentStatus == 'Paid') {
         paid++;
-      } else if (r.paymentStatus == 'Partial') {
+      } else if (rental.paymentStatus == 'Partial') {
         partial++;
       }
     }

@@ -22,7 +22,10 @@ class PartReplacementHiveDataSource
         } catch (_) {}
       }
     }
-    list.sort((a, b) => b.installOdometer.compareTo(a.installOdometer));
+    list.sort(
+      (leftReplacement, rightReplacement) => rightReplacement.installOdometer
+          .compareTo(leftReplacement.installOdometer),
+    );
     return list;
   }
 

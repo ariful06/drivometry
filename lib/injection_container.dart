@@ -117,7 +117,7 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton(() => UpdateMaintenance(sl<MaintenanceRepository>()));
   sl.registerLazySingleton(() => DeleteMaintenance(sl<MaintenanceRepository>()));
   sl.registerLazySingleton(() => WatchMaintenanceByVehicle(sl<MaintenanceRepository>()));
-  sl.registerLazySingleton(() => CheckOdometerDueReminders(
+  sl.registerLazySingleton(() => RunMaintenanceReminderChecks(
     sl<VehicleRepository>(),
     sl<MaintenanceRepository>(),
     sl<NotificationService>(),

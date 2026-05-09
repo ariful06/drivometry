@@ -12,21 +12,28 @@ class MaintenanceHiveDataSource implements MaintenanceLocalDataSource {
   List<MaintenanceEntryModel> _byVehicle(String vehicleId) {
     final list = <MaintenanceEntryModel>[];
     for (final key in _box.keys) {
-      final v = _box.get(key);
-      if (v is Map) {
-        final map = Map<String, dynamic>.from(v);
+      final storedValue = _box.get(key);
+      if (storedValue is Map) {
+        final map = Map<String, dynamic>.from(storedValue);
         if ((map['vehicle_id'] as String?) != vehicleId) continue;
         try {
           list.add(MaintenanceEntryModel.fromMap(map));
         } catch (_) {}
       }
     }
-    list.sort((a, b) => b.serviceDate.compareTo(a.serviceDate));
+    list.sort(
+      (leftEntry, rightEntry) =>
+          rightEntry.serviceDate.compareTo(leftEntry.serviceDate),
+    );
     return list;
   }
 
   double _sumCost(Iterable<MaintenanceEntryModel> entries) {
-    return entries.fold<double>(0, (s, e) => s + e.cost);
+    return entries.fold<double>(
+      0,
+      (runningCostSum, maintenanceModel) =>
+          runningCostSum + maintenanceModel.cost,
+    );
   }
 
   @override
@@ -44,23 +51,36 @@ class MaintenanceHiveDataSource implements MaintenanceLocalDataSource {
     final endOfRange = startOfToday.add(Duration(days: daysAhead));
     final list = <MaintenanceEntryModel>[];
     for (final key in _box.keys) {
-      final v = _box.get(key);
-      if (v is Map) {
+      final storedValue = _box.get(key);
+      if (storedValue is Map) {
         try {
-          final e =
-              MaintenanceEntryModel.fromMap(Map<String, dynamic>.from(v));
-          final next = e.nextServiceDate;
+          final maintenanceModel = MaintenanceEntryModel.fromMap(
+            Map<String, dynamic>.from(storedValue),
+          );
+          if (maintenanceModel.reminderAcknowledged) continue;
+
+          final next = maintenanceModel.nextServiceDate;
           if (next != null) {
             final nextDateOnly = DateTime(next.year, next.month, next.day);
-            if (!nextDateOnly.isBefore(startOfToday) &&
-                !nextDateOnly.isAfter(endOfRange)) {
-              list.add(e);
+            if (!nextDateOnly.isAfter(endOfRange)) {
+              list.add(maintenanceModel);
             }
+          } else if (maintenanceModel.nextServiceOdometer != null) {
+            list.add(maintenanceModel);
           }
         } catch (_) {}
       }
     }
-    list.sort((a, b) => a.nextServiceDate!.compareTo(b.nextServiceDate!));
+    list.sort((leftModel, rightModel) {
+      final leftNextDate = leftModel.nextServiceDate;
+      final rightNextDate = rightModel.nextServiceDate;
+      if (leftNextDate != null && rightNextDate != null) {
+        return leftNextDate.compareTo(rightNextDate);
+      }
+      if (leftNextDate != null) return -1;
+      if (rightNextDate != null) return 1;
+      return leftModel.title.compareTo(rightModel.title);
+    });
     return list;
   }
 
@@ -73,6 +93,9 @@ class MaintenanceHiveDataSource implements MaintenanceLocalDataSource {
   Future<void> deleteMaintenance(String id) async {
     await _box.delete(id);
   }
+
+  @override
+  Stream<void> watchMaintenanceStore() => _box.watch().map((_) {});
 
   @override
   Stream<List<MaintenanceEntryModel>> watchMaintenanceByVehicle(
@@ -94,14 +117,16 @@ class MaintenanceHiveDataSource implements MaintenanceLocalDataSource {
     final toStr = to.toIso8601String();
     final list = <MaintenanceEntryModel>[];
     for (final key in _box.keys) {
-      final v = _box.get(key);
-      if (v is Map) {
+      final storedValue = _box.get(key);
+      if (storedValue is Map) {
         try {
-          final e =
-              MaintenanceEntryModel.fromMap(Map<String, dynamic>.from(v));
-          final d = e.serviceDate.toIso8601String();
-          if (d.compareTo(fromStr) >= 0 && d.compareTo(toStr) <= 0) {
-            list.add(e);
+          final maintenanceModel = MaintenanceEntryModel.fromMap(
+            Map<String, dynamic>.from(storedValue),
+          );
+          final serviceDateIso = maintenanceModel.serviceDate.toIso8601String();
+          if (serviceDateIso.compareTo(fromStr) >= 0 &&
+              serviceDateIso.compareTo(toStr) <= 0) {
+            list.add(maintenanceModel);
           }
         } catch (_) {}
       }
@@ -117,9 +142,10 @@ class MaintenanceHiveDataSource implements MaintenanceLocalDataSource {
   ) async {
     final fromStr = from.toIso8601String();
     final toStr = to.toIso8601String();
-    final list = _byVehicle(vehicleId).where((e) {
-      final d = e.serviceDate.toIso8601String();
-      return d.compareTo(fromStr) >= 0 && d.compareTo(toStr) <= 0;
+    final list = _byVehicle(vehicleId).where((maintenanceModel) {
+      final serviceDateIso = maintenanceModel.serviceDate.toIso8601String();
+      return serviceDateIso.compareTo(fromStr) >= 0 &&
+          serviceDateIso.compareTo(toStr) <= 0;
     });
     return _sumCost(list);
   }

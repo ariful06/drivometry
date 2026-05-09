@@ -21,8 +21,9 @@ class FuelEntryTile extends StatelessWidget {
   /// Distance driven since previous refill. Null for the first (oldest) entry.
   double? get _distanceDriven {
     if (previousEntry == null) return null;
-    final d = entry.odometer - previousEntry!.odometer;
-    return d > 0 ? d : null;
+    final distanceSincePreviousKm =
+        entry.odometer - previousEntry!.odometer;
+    return distanceSincePreviousKm > 0 ? distanceSincePreviousKm : null;
   }
 
   /// Mileage for this tile: (current distance driven) / (previous refill liters). Null for the first (oldest) entry.

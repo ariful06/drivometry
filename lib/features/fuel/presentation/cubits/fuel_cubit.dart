@@ -39,7 +39,7 @@ class FuelCubit extends Cubit<FuelState> {
         final total = await _getTotalCost(vehicleId);
         emit(FuelLoaded(entries: entries, totalCost: total));
       },
-      onError: (Object e) => emit(FuelError(e.toString())),
+      onError: (Object error) => emit(FuelError(error.toString())),
     );
   }
 
@@ -68,24 +68,24 @@ class FuelCubit extends Cubit<FuelState> {
         distanceDriven: distance,
       );
       await _addFuelEntry(entry);
-    } catch (e) {
-      emit(FuelError(e.toString()));
+    } catch (error) {
+      emit(FuelError(error.toString()));
     }
   }
 
   Future<void> updateFuelEntry(FuelEntry entry) async {
     try {
       await _updateFuelEntry(entry);
-    } catch (e) {
-      emit(FuelError(e.toString()));
+    } catch (error) {
+      emit(FuelError(error.toString()));
     }
   }
 
   Future<void> deleteFuelEntry(String id) async {
     try {
       await _deleteFuelEntry(id);
-    } catch (e) {
-      emit(FuelError(e.toString()));
+    } catch (error) {
+      emit(FuelError(error.toString()));
     }
   }
 

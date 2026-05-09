@@ -84,6 +84,8 @@ class MaintenanceEntryTile extends StatelessWidget {
               entry.id,
               notificationId: entry.notificationId,
               odometerReminderScheduled: entry.odometerReminderScheduled,
+              dateProximityReminderScheduled:
+                  entry.dateProximityReminderScheduled,
             );
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Entry deleted')),

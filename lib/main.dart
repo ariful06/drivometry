@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_cubit.dart';
+import 'features/maintenance/domain/usecases/maintenance_usecases.dart';
 import 'features/startup/presentation/cubits/startup_cubit.dart';
 import 'injection_container.dart';
 
@@ -101,8 +102,11 @@ class DrivometryApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => sl<StartupCubit>()..load(),
-      child: BlocBuilder<StartupCubit, StartupState>(
-        builder: (context, startupState) {
+      child: BlocListener<StartupCubit, StartupState>(
+        listenWhen: (previous, current) => current is StartupReady,
+        listener: (context, state) => sl<RunMaintenanceReminderChecks>()(),
+        child: BlocBuilder<StartupCubit, StartupState>(
+          builder: (context, startupState) {
           if (startupState is! StartupReady) {
             return MaterialApp(
               theme: AppTheme.lightTheme,
@@ -131,7 +135,8 @@ class DrivometryApp extends StatelessWidget {
               },
             ),
           );
-        },
+          },
+        ),
       ),
     );
   }

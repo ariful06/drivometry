@@ -29,7 +29,7 @@ class _AnalyticsView extends StatefulWidget {
 }
 
 class _AnalyticsViewState extends State<_AnalyticsView> {
-  String _period = AppConstants.periodMonthly;
+  String _period = AppConstants.periodWeekly;
   final _periods = [
     AppConstants.periodWeekly,
     AppConstants.periodMonthly,
@@ -48,9 +48,9 @@ class _AnalyticsViewState extends State<_AnalyticsView> {
             child: _PeriodSelector(
               periods: _periods,
               selected: _period,
-              onChanged: (p) {
-                setState(() => _period = p);
-                context.read<AnalyticsCubit>().loadAnalytics(period: p);
+              onChanged: (period) {
+                setState(() => _period = period);
+                context.read<AnalyticsCubit>().loadAnalytics(period: period);
               },
             ),
           ),
@@ -299,11 +299,20 @@ class _MonthlyTrendChart extends StatelessWidget {
 
   double _maxY() {
     if (data.isEmpty) return 100;
-    var m = 0.0;
-    for (final e in data) {
-      m = [m, e.fuelCost, e.maintenanceCost, e.rentalBillable].reduce((a, b) => a > b ? a : b);
+    var maximumMonthlyStackHeight = 0.0;
+    for (final monthBreakdownRow in data) {
+      maximumMonthlyStackHeight =
+          [
+            maximumMonthlyStackHeight,
+            monthBreakdownRow.fuelCost,
+            monthBreakdownRow.maintenanceCost,
+            monthBreakdownRow.rentalBillable,
+          ].reduce(
+            (greater, candidate) =>
+                candidate > greater ? candidate : greater,
+          );
     }
-    return m * 1.2;
+    return maximumMonthlyStackHeight * 1.2;
   }
 
   @override
@@ -335,16 +344,16 @@ class _MonthlyTrendChart extends StatelessWidget {
               BarChartData(
                 alignment: BarChartAlignment.spaceAround,
                 maxY: _maxY(),
-                barGroups: data.asMap().entries.map((entry) {
-                  final idx = entry.key;
-                  final d = entry.value;
+                barGroups: data.asMap().entries.map((indexedBreakdownRow) {
+                  final monthSlotIndex = indexedBreakdownRow.key;
+                  final monthlyBreakdown = indexedBreakdownRow.value;
                   return BarChartGroupData(
-                    x: idx,
+                    x: monthSlotIndex,
                     groupVertically: false,
                     barsSpace: 6,
                     barRods: [
                       BarChartRodData(
-                        toY: d.fuelCost,
+                        toY: monthlyBreakdown.fuelCost,
                         color: colors.fuelColor,
                         width: 7,
                         borderRadius: const BorderRadius.only(
@@ -353,7 +362,7 @@ class _MonthlyTrendChart extends StatelessWidget {
                         ),
                       ),
                       BarChartRodData(
-                        toY: d.maintenanceCost,
+                        toY: monthlyBreakdown.maintenanceCost,
                         color: colors.maintenanceColor,
                         width: 7,
                         borderRadius: const BorderRadius.only(
@@ -362,7 +371,7 @@ class _MonthlyTrendChart extends StatelessWidget {
                         ),
                       ),
                       BarChartRodData(
-                        toY: d.rentalBillable,
+                        toY: monthlyBreakdown.rentalBillable,
                         color: colors.partsColor,
                         width: 7,
                         borderRadius: const BorderRadius.only(
@@ -380,9 +389,12 @@ class _MonthlyTrendChart extends StatelessWidget {
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      getTitlesWidget: (v, _) => v.toInt() < data.length
+                      getTitlesWidget: (axisValue, _) => axisValue.toInt() <
+                              data.length
                           ? Text(
-                              DateFormat('MMM').format(data[v.toInt()].month),
+                              DateFormat('MMM').format(
+                                data[axisValue.toInt()].month,
+                              ),
                               style: TextStyle(fontSize: 9, color: colors.textSecondary),
                             )
                           : const SizedBox.shrink(),
@@ -452,9 +464,18 @@ class _RentalSnapshotCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
-    final maxVal = [rentalBillable, operatingSpend, 1.0].reduce((a, b) => a > b ? a : b);
-    final rentalFrac = (rentalBillable / maxVal).clamp(0.0, 1.0);
-    final spendFrac = (operatingSpend / maxVal).clamp(0.0, 1.0);
+    final snapshotMaxGaugeValue = [
+      rentalBillable,
+      operatingSpend,
+      1.0,
+    ].reduce(
+      (greater, candidate) =>
+          candidate > greater ? candidate : greater,
+    );
+    final rentalFrac =
+        (rentalBillable / snapshotMaxGaugeValue).clamp(0.0, 1.0);
+    final spendFrac =
+        (operatingSpend / snapshotMaxGaugeValue).clamp(0.0, 1.0);
 
     return Container(
       padding: const EdgeInsets.all(18),

@@ -42,8 +42,8 @@ class _FuelEntryDetailPageState extends State<FuelEntryDetailPage> {
   double? get _periodDistanceKm {
     final prev = args.previousEntry;
     if (prev == null) return null;
-    final d = _e.odometer - prev.odometer;
-    return d > 0 ? d : null;
+    final distanceDeltaKm = _e.odometer - prev.odometer;
+    return distanceDeltaKm > 0 ? distanceDeltaKm : null;
   }
 
   double? get _periodKmPerLiter {
@@ -57,10 +57,10 @@ class _FuelEntryDetailPageState extends State<FuelEntryDetailPage> {
   void initState() {
     super.initState();
     _vehicleFuture = sl<GetVehicleById>()(_e.vehicleId);
-    final p = _e.receiptImagePath;
-    _receiptFuture = (p == null || p.isEmpty)
+    final receiptImagePath = _e.receiptImagePath;
+    _receiptFuture = (receiptImagePath == null || receiptImagePath.isEmpty)
         ? Future.value(false)
-        : Future.value(File(p).existsSync());
+        : Future.value(File(receiptImagePath).existsSync());
   }
 
   void _openReceiptFullscreen(BuildContext context, String path) {

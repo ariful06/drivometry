@@ -430,8 +430,9 @@ class _FuelList extends StatelessWidget {
     final colors = Theme.of(context).extension<AppColors>()!;
     final latestDist = entries.length >= 2
         ? (() {
-            final d = entries[0].odometer - entries[1].odometer;
-            return d > 0 ? d : null;
+            final latestFillDistanceKm =
+                entries[0].odometer - entries[1].odometer;
+            return latestFillDistanceKm > 0 ? latestFillDistanceKm : null;
           })()
         : null;
     final latestRefillLiters =
@@ -716,14 +717,23 @@ class _MaintenanceList extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
     final theme = Theme.of(context);
-    final totalCost = entries.fold<double>(0, (s, e) => s + e.cost);
+    final totalCost = entries.fold<double>(
+      0,
+      (runningMaintenanceSum, maintenanceEntry) =>
+          runningMaintenanceSum + maintenanceEntry.cost,
+    );
     final now = DateTime.now();
     final startOfToday = DateTime(now.year, now.month, now.day);
     DateTime? closest;
-    for (final e in entries) {
-      final d = e.nextServiceDate;
-      if (d == null) continue;
-      final dateOnly = DateTime(d.year, d.month, d.day);
+    for (final maintenanceEntry in entries) {
+      final upcomingServiceDate =
+          maintenanceEntry.nextServiceDate;
+      if (upcomingServiceDate == null) continue;
+      final dateOnly = DateTime(
+        upcomingServiceDate.year,
+        upcomingServiceDate.month,
+        upcomingServiceDate.day,
+      );
       if (dateOnly.isBefore(startOfToday)) continue;
       if (closest == null || dateOnly.isBefore(closest)) {
         closest = dateOnly;

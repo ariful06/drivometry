@@ -33,36 +33,65 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
       final allRentals = await _rentalRepo.getAllRentals();
 
       final vehicleAnalytics = <VehicleAnalytics>[];
-      for (final v in vehicles) {
-        if (vehicleId != null && v.id != vehicleId) continue;
-        final fuelCost = await _fuelRepo.getTotalFuelCostByVehicleInRange(v.id, range.from, range.to);
+      for (final vehicle in vehicles) {
+        if (vehicleId != null && vehicle.id != vehicleId) continue;
+        final fuelCost = await _fuelRepo.getTotalFuelCostByVehicleInRange(vehicle.id, range.from, range.to);
         final maintenanceCost =
-            await _maintenanceRepo.getTotalMaintenanceCostByVehicleInRange(v.id, range.from, range.to);
-        final fuelEntries = await _fuelRepo.getFuelEntriesByVehicle(v.id);
-        final totalDistance = fuelEntries.fold<double>(0, (s, e) => s + (e.distanceDriven ?? 0));
-        final efficiencies = fuelEntries.where((e) => e.fuelEfficiency != null).toList();
-        final avgEfficiency = efficiencies.isEmpty
+            await _maintenanceRepo.getTotalMaintenanceCostByVehicleInRange(vehicle.id, range.from, range.to);
+        final fuelEntries = await _fuelRepo.getFuelEntriesByVehicle(vehicle.id);
+        final totalDistance =
+            fuelEntries.fold<double>(
+              0,
+              (runningKm, fuelEntryRow) =>
+                  runningKm + (fuelEntryRow.distanceDriven ?? 0),
+            );
+        final efficiencySamples = fuelEntries
+            .where(
+              (fuelEntryRow) => fuelEntryRow.fuelEfficiency != null,
+            )
+            .toList();
+        final avgEfficiency = efficiencySamples.isEmpty
             ? null
-            : efficiencies.fold<double>(0, (s, e) => s + e.fuelEfficiency!) / efficiencies.length;
+            : efficiencySamples.fold<double>(
+                    0,
+                    (runningEfficiencySum, fuelEntryRow) =>
+                        runningEfficiencySum +
+                        fuelEntryRow.fuelEfficiency!,
+                  ) /
+                efficiencySamples.length;
 
-        final rentalList =
-            allRentals.where((r) => r.vehicleId == v.id).where((r) => _inRange(r.bookingDate, range)).toList();
-        final rentalBillable = rentalList.fold<double>(
+        final rentalListForVehicle =
+            allRentals
+                .where(
+                  (rentalRow) =>
+                      rentalRow.vehicleId == vehicle.id &&
+                      _inRange(rentalRow.bookingDate, range),
+                )
+                .toList();
+        final rentalBillable = rentalListForVehicle.fold<double>(
           0,
-          (s, r) =>
-              s +
+          (runningBillableSum, rentalRow) =>
+              runningBillableSum +
               RentalEntry.billableTripAmount(
-                rentFareAmount: r.rentFareAmount,
-                fuelCost: r.fuelCost,
-                customerPaidFuelBill: r.customerPaidFuelBill,
+                rentFareAmount: rentalRow.rentFareAmount,
+                fuelCost: rentalRow.fuelCost,
+                customerPaidFuelBill: rentalRow.customerPaidFuelBill,
               ),
         );
-        final rentalDue = rentalList.fold<double>(0, (s, r) => s + r.dueAmount);
-        final rentalTripKm = rentalList.fold<double>(0, (s, r) => s + r.totalKm);
+        final rentalDue = rentalListForVehicle.fold<double>(
+          0,
+          (runningDueSum, rentalRow) =>
+              runningDueSum + rentalRow.dueAmount,
+        );
+        final rentalTripKm = rentalListForVehicle.fold<double>(
+          0,
+          (runningKmSum, rentalRow) =>
+              runningKmSum + rentalRow.totalKm,
+        );
 
         vehicleAnalytics.add(VehicleAnalytics(
-          vehicleId: v.id,
-          vehicleName: v.name,
+          vehicleId: vehicle.id,
+          vehicleName: vehicle.name,
           fuelCost: fuelCost,
           maintenanceCost: maintenanceCost,
           totalCost: fuelCost + maintenanceCost,
@@ -70,17 +99,33 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
           rentalBillable: rentalBillable,
           rentalDue: rentalDue,
           rentalTripKm: rentalTripKm,
-          rentalTripCount: rentalList.length,
+          rentalTripCount: rentalListForVehicle.length,
           averageEfficiency: avgEfficiency,
           costPerKm: totalDistance > 0 ? (fuelCost + maintenanceCost) / totalDistance : null,
         ));
       }
 
       final monthlyData = await _buildMonthlyBreakdown(vehicleId, now, allRentals);
-      final totalFuel = vehicleAnalytics.fold<double>(0, (s, v) => s + v.fuelCost);
-      final totalMaintenance = vehicleAnalytics.fold<double>(0, (s, v) => s + v.maintenanceCost);
-      final totalRentalBillable = vehicleAnalytics.fold<double>(0, (s, v) => s + v.rentalBillable);
-      final totalRentalDue = vehicleAnalytics.fold<double>(0, (s, v) => s + v.rentalDue);
+      final totalFuel = vehicleAnalytics.fold<double>(
+        0,
+        (runningFuelSum, vehicleMetricRow) =>
+            runningFuelSum + vehicleMetricRow.fuelCost,
+      );
+      final totalMaintenance = vehicleAnalytics.fold<double>(
+        0,
+        (runningMaintenanceSum, vehicleMetricRow) =>
+            runningMaintenanceSum + vehicleMetricRow.maintenanceCost,
+      );
+      final totalRentalBillable = vehicleAnalytics.fold<double>(
+        0,
+        (runningRentalSum, vehicleMetricRow) =>
+            runningRentalSum + vehicleMetricRow.rentalBillable,
+      );
+      final totalRentalDue = vehicleAnalytics.fold<double>(
+        0,
+        (runningDueSum, vehicleMetricRow) =>
+            runningDueSum + vehicleMetricRow.rentalDue,
+      );
 
       emit(AnalyticsLoaded(
         period: period,
@@ -93,8 +138,8 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
         monthlyBreakdown: monthlyData,
         dateRange: range,
       ));
-    } catch (e) {
-      emit(AnalyticsError(e.toString()));
+    } catch (error) {
+      emit(AnalyticsError(error.toString()));
     }
   }
 
@@ -124,8 +169,8 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
     List<RentalEntry> allRentals,
   ) async {
     final result = <MonthlyBreakdown>[];
-    for (var i = 5; i >= 0; i--) {
-      final month = DateTime(now.year, now.month - i, 1);
+    for (var monthsBackIndex = 5; monthsBackIndex >= 0; monthsBackIndex--) {
+      final month = DateTime(now.year, now.month - monthsBackIndex, 1);
       final monthEnd = DateTime(month.year, month.month + 1, 0, 23, 59, 59);
       final double fuelCost;
       final double maintenanceCost;
@@ -139,16 +184,16 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
       }
       final range = DateRange(from: month, to: monthEnd);
       final rentalBillable = allRentals
-          .where((r) => vehicleId == null || r.vehicleId == vehicleId)
-          .where((r) => _inRange(r.bookingDate, range))
+          .where((rental) => vehicleId == null || rental.vehicleId == vehicleId)
+          .where((rental) => _inRange(rental.bookingDate, range))
           .fold<double>(
             0,
-            (s, r) =>
-                s +
+            (runningBillableSum, rentalRow) =>
+                runningBillableSum +
                 RentalEntry.billableTripAmount(
-                  rentFareAmount: r.rentFareAmount,
-                  fuelCost: r.fuelCost,
-                  customerPaidFuelBill: r.customerPaidFuelBill,
+                  rentFareAmount: rentalRow.rentFareAmount,
+                  fuelCost: rentalRow.fuelCost,
+                  customerPaidFuelBill: rentalRow.customerPaidFuelBill,
                 ),
           );
       result.add(MonthlyBreakdown(

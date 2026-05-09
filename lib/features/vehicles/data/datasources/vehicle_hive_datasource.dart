@@ -19,7 +19,10 @@ class VehicleHiveDataSource implements VehicleLocalDataSource {
         } catch (_) {}
       }
     }
-    list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    list.sort(
+      (leftVehicle, rightVehicle) =>
+          leftVehicle.createdAt.compareTo(rightVehicle.createdAt),
+    );
     return list;
   }
 
