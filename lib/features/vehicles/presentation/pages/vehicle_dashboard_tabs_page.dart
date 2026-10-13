@@ -102,10 +102,14 @@ class _VehicleDashboardTabsViewState extends State<_VehicleDashboardTabsView>
             color: theme.appBarTheme.backgroundColor,
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
             child: InkWell(
-              onTap: () => context.push(
-                '/vehicles/${_currentVehicle.id}/details',
-                extra: _currentVehicle,
-              ),
+              onTap: () async {
+                await context.push(
+                  '/vehicles/${_currentVehicle.id}/details',
+                  extra: _currentVehicle,
+                );
+                // Details can edit the vehicle (tank capacity, odometer…).
+                if (mounted) await _refetchVehicle();
+              },
               borderRadius: BorderRadius.circular(16),
               child: _VehicleHeaderCard(vehicle: _currentVehicle),
             ),
