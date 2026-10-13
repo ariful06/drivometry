@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../../core/database/hive_storage.dart';
@@ -52,16 +54,39 @@ class FuelHiveDataSource implements FuelLocalDataSource {
   }
 
   @override
+  Future<void> saveFuelEntries(List<FuelEntryModel> models) async {
+    if (models.isEmpty) return;
+    await _box.putAll({for (final model in models) model.id: model.toMap()});
+  }
+
+  @override
   Future<void> deleteFuelEntry(String id) async {
     await _box.delete(id);
   }
 
   @override
-  Stream<List<FuelEntryModel>> watchFuelEntriesByVehicle(String vehicleId) async* {
-    yield _byVehicle(vehicleId);
-    await for (final _ in _box.watch()) {
-      yield _byVehicle(vehicleId);
-    }
+  Stream<List<FuelEntryModel>> watchFuelEntriesByVehicle(String vehicleId) {
+    // Box events arrive one per key (a batch write emits many); coalesce them
+    // so the list is rescanned and emitted once per burst.
+    StreamSubscription<BoxEvent>? boxSubscription;
+    Timer? pendingEmit;
+    late final StreamController<List<FuelEntryModel>> controller;
+    controller = StreamController<List<FuelEntryModel>>(
+      onListen: () {
+        controller.add(_byVehicle(vehicleId));
+        boxSubscription = _box.watch().listen((_) {
+          pendingEmit ??= Timer(Duration.zero, () {
+            pendingEmit = null;
+            if (!controller.isClosed) controller.add(_byVehicle(vehicleId));
+          });
+        });
+      },
+      onCancel: () async {
+        pendingEmit?.cancel();
+        await boxSubscription?.cancel();
+      },
+    );
+    return controller.stream;
   }
 
   @override

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../domain/entities/fuel_entry.dart';
+import '../../domain/services/fuel_consumption_calculator.dart';
 import '../cubits/fuel_cubit.dart';
 import '../pages/fuel_entry_detail_page.dart';
 
@@ -13,10 +14,13 @@ class FuelEntryTile extends StatelessWidget {
   const FuelEntryTile({
     required this.entry, super.key,
     this.previousEntry,
+    this.consumption,
   });
   final FuelEntry entry;
-  /// Chronologically previous refill (older). When non-null, tile shows mileage = (current distance driven) / (previous refill liters).
+  /// Chronologically previous refill (older); used for distance since that fill.
   final FuelEntry? previousEntry;
+  /// Full-tank period this fill closes, if any (see [FuelConsumptionCalculator]).
+  final FuelConsumptionSegment? consumption;
 
   /// Distance driven since previous refill. Null for the first (oldest) entry.
   double? get _distanceDriven {
@@ -26,12 +30,8 @@ class FuelEntryTile extends StatelessWidget {
     return distanceSincePreviousKm > 0 ? distanceSincePreviousKm : null;
   }
 
-  /// Mileage for this tile: (current distance driven) / (previous refill liters). Null for the first (oldest) entry.
-  double? get _tileMileage {
-    final dist = _distanceDriven;
-    if (dist == null || previousEntry == null || previousEntry!.liters <= 0) return null;
-    return dist / previousEntry!.liters;
-  }
+  /// Tank-to-tank km/L. Null for partial fills and unmeasurable periods.
+  double? get _tileMileage => consumption?.kmPerLiter;
 
   @override
   Widget build(BuildContext context) {
@@ -71,7 +71,9 @@ class FuelEntryTile extends StatelessWidget {
         child: const Icon(Icons.delete_outline, color: Colors.white, size: 24),
       ),
       onDismissed: (_) {
-        context.read<FuelCubit>().deleteFuelEntry(entry.id);
+        context
+            .read<FuelCubit>()
+            .deleteFuelEntry(entry.id, vehicleId: entry.vehicleId);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Fuel entry deleted')),
         );
@@ -94,6 +96,7 @@ class FuelEntryTile extends StatelessWidget {
                 extra: FuelEntryDetailArgs(
                   entry: entry,
                   previousEntry: previousEntry,
+                  consumption: consumption,
                 ),
               );
             },
@@ -137,8 +140,9 @@ class FuelEntryTile extends StatelessWidget {
                         child: _MetricChip(
                           icon: Icons.eco_outlined,
                           value: _tileMileage != null
-                              ? Formatters.formatFuelEfficiency(_tileMileage!)
-                              : '—',
+                              ? '${consumption!.isEstimated ? '≈ ' : ''}'
+                                  '${Formatters.formatFuelEfficiency(_tileMileage!)}'
+                              : (entry.isFullTank ? '—' : 'Partial'),
                           label: 'Mileage',
                           color: colors.maintenanceColor,
                         ),

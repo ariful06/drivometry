@@ -15,6 +15,7 @@ import '../../../../injection_container.dart';
 import '../../../vehicles/domain/entities/vehicle.dart';
 import '../../../vehicles/domain/usecases/vehicle_usecases.dart';
 import '../../domain/entities/fuel_entry.dart';
+import '../../domain/services/fuel_consumption_calculator.dart';
 import '../../domain/usecases/fuel_usecases.dart';
 
 /// Distances + money fields: decimal keypad. On iOS, plain unsigned decimal maps to
@@ -50,31 +51,47 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
   final _litersCtrl = TextEditingController();
   final _totalPaidCtrl = TextEditingController();
   final _costPerLiterCtrl = TextEditingController();
+  /// Optional override of the tank capacity on a full-tank fill.
+  final _fullTankLitersCtrl = TextEditingController();
+  /// Optional fuel gauge % after a partial fill (enables estimated consumption).
+  final _fuelLevelCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
   DateTime _date = DateTime.now();
   bool _isSaving = false;
 
-  /// When not a full-tank log: `false` = enter liters; `true` = enter total paid
-  /// and derive liters as total ÷ cost per liter.
+  /// `false` = enter liters; `true` = enter total paid and derive liters as
+  /// total ÷ cost per liter.
   bool _useTotalPaidForQuantity = false;
 
-  /// Last fuel entry for this vehicle (loaded on init); used to show last refill amount and previous mileage.
+  /// Last fuel entry for this vehicle (loaded on init); used to show last refill amount.
   FuelEntry? _lastFuelEntry;
+
+  /// All saved fills for this vehicle; full-tank consumption needs the whole chain
+  /// back to the previous full tank (partial fills in between add their liters).
+  List<FuelEntry> _fuelHistory = const [];
   bool _lastEntryLoading = true;
 
   /// After the first log: `true` = trip km since last fill; `false` = dashboard odometer.
   bool _useTripMode = true;
 
-  bool _isFullTank = false;
+  /// Filled to the brim. Consumption is measured between two full-tank fills.
+  bool _isFullTank = true;
+
+  /// A fill-up since the last log was not recorded; breaks the measurement chain.
+  bool _missedPreviousFill = false;
 
   /// Optional receipt image picked by user; saved to app storage on submit.
   String? _pickedReceiptPath;
 
-  /// Trip / odometer / history only — last-refill mileage does not use current liters or full tank.
+  /// Trip / odometer / history inputs changed.
   final ValueNotifier<int> _mileagePreviewTick = ValueNotifier(0);
 
-  /// Liters, price, full tank — total cost row.
+  /// Liters, price, total paid inputs changed.
   final ValueNotifier<int> _costSummaryTick = ValueNotifier(0);
+
+  /// Consumption preview depends on distance and liters.
+  late final Listenable _consumptionPreviewListenable =
+      Listenable.merge([_mileagePreviewTick, _costSummaryTick]);
 
   late final ImagePicker _imagePicker;
 
@@ -96,23 +113,45 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
     return double.tryParse(raw) ?? 0;
   }
 
+  /// Full tank fill takes its liters from the vehicle's tank capacity, so no
+  /// quantity input is needed. Without a capacity, liters are entered as usual.
+  bool get _fullTankUsesCapacity =>
+      _isFullTank && widget.vehicle.tankCapacityLiters != null;
+
+  /// Quantity comes from "Total paid" (only when liters are not from capacity).
+  bool get _quantityFromTotalPaid =>
+      !_fullTankUsesCapacity && _useTotalPaidForQuantity;
+
+  /// Liters typed in the optional full-tank override, if valid.
+  double? get _fullTankLitersOverride {
+    final parsed = double.tryParse(
+      _fullTankLitersCtrl.text.trim().replaceAll(',', '.'),
+    );
+    return parsed != null && parsed > 0 ? parsed : null;
+  }
+
+  double? get _parsedFuelLevelPercent {
+    final parsed = double.tryParse(
+      _fuelLevelCtrl.text.trim().replaceAll(',', '.'),
+    );
+    return parsed != null && parsed >= 0 && parsed <= 100 ? parsed : null;
+  }
+
   double get _totalCost {
-    if (_isFullTank && widget.vehicle.tankCapacityLiters != null) {
-      return widget.vehicle.tankCapacityLiters! * _parsedCostPerLiter;
-    }
-    if (!_isFullTank && _useTotalPaidForQuantity) {
+    if (_quantityFromTotalPaid) {
       final rawTotal = _totalPaidCtrl.text.trim().replaceAll(',', '.');
       return double.tryParse(rawTotal) ?? 0;
     }
     return _effectiveLiters * _parsedCostPerLiter;
   }
 
-  /// Liters to use: full tank → capacity; total-paid mode → total ÷ price; else typed liters.
+  /// Liters to use: full tank → pumped override or tank capacity; total-paid
+  /// mode → total ÷ price; else typed liters.
   double get _effectiveLiters {
-    if (_isFullTank && widget.vehicle.tankCapacityLiters != null) {
-      return widget.vehicle.tankCapacityLiters!;
+    if (_fullTankUsesCapacity) {
+      return _fullTankLitersOverride ?? widget.vehicle.tankCapacityLiters!;
     }
-    if (!_isFullTank && _useTotalPaidForQuantity) {
+    if (_quantityFromTotalPaid) {
       final rawTotal = _totalPaidCtrl.text.trim().replaceAll(',', '.');
       final totalPaid = double.tryParse(rawTotal) ?? 0;
       final costPerLiter = _parsedCostPerLiter;
@@ -161,21 +200,33 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
     return odo - widget.vehicle.currentOdometer;
   }
 
-  /// km/L for the **last** refill only: distance since that fill divided by liters logged on that fill.
-  /// Current refill volume (liters / full tank) does not affect this number.
-  double? get _lastRefillMileagePreviewKmPerLiter {
-    final distanceKmSinceLastFill = _distanceKmForPreview;
-    if (distanceKmSinceLastFill == null) return null;
-    final lastL = _lastFuelEntry?.liters;
-    if (lastL == null || lastL <= 0) return null;
-    return distanceKmSinceLastFill / lastL;
+  /// Fill being entered, as the calculator sees it. Null until distance is valid.
+  FuelEntry? get _draftEntryForPreview {
+    final distanceKm = _distanceKmForPreview;
+    if (distanceKm == null) return null;
+    return FuelEntry(
+      id: '__draft__',
+      vehicleId: widget.vehicle.id,
+      date: _date,
+      odometer: widget.vehicle.currentOdometer + distanceKm,
+      liters: _effectiveLiters,
+      costPerLiter: _parsedCostPerLiter,
+      totalCost: _totalCost,
+      isFullTank: _isFullTank,
+      missedPreviousFill: _missedPreviousFill,
+      fuelLevelPercent: _isFullTank ? null : _parsedFuelLevelPercent,
+    );
   }
 
-  String? get _mileagePreviewFootnote {
-    if (_lastRefillMileagePreviewKmPerLiter == null) return null;
-    final lastL = _lastFuelEntry?.liters;
-    if (lastL == null || lastL <= 0) return null;
-    return 'Uses your last refill (${Formatters.formatLiters(lastL)}).';
+  /// Consumption this fill would close (full-to-full, or gauge estimate).
+  FuelConsumptionSegment? get _consumptionPreview {
+    final draft = _draftEntryForPreview;
+    if (draft == null || draft.liters <= 0) return null;
+    return FuelConsumptionCalculator.previewForDraft(
+      _fuelHistory,
+      draft,
+      tankCapacityLiters: widget.vehicle.tankCapacityLiters,
+    );
   }
 
   void _onDistanceModeChanged(bool useTrip) {
@@ -212,15 +263,19 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
     _litersCtrl.addListener(_bumpCostSummary);
     _totalPaidCtrl.addListener(_bumpCostSummary);
     _costPerLiterCtrl.addListener(_bumpCostSummary);
+    _fullTankLitersCtrl.addListener(_bumpCostSummary);
+    _fuelLevelCtrl.addListener(_bumpCostSummary);
     _loadLastFuelEntry();
   }
 
   Future<void> _loadLastFuelEntry() async {
     try {
-      final entry = await sl<GetLastFuelEntry>()(widget.vehicle.id);
+      // Newest first, so the last fill is the head of the history.
+      final history = await sl<GetFuelEntriesByVehicle>()(widget.vehicle.id);
       if (mounted) {
         setState(() {
-          _lastFuelEntry = entry;
+          _lastFuelEntry = history.firstOrNull;
+          _fuelHistory = history;
           _lastEntryLoading = false;
         });
         _bumpMileagePreview();
@@ -240,6 +295,8 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
     _litersCtrl.removeListener(_bumpCostSummary);
     _totalPaidCtrl.removeListener(_bumpCostSummary);
     _costPerLiterCtrl.removeListener(_bumpCostSummary);
+    _fullTankLitersCtrl.removeListener(_bumpCostSummary);
+    _fuelLevelCtrl.removeListener(_bumpCostSummary);
     _mileagePreviewTick.dispose();
     _costSummaryTick.dispose();
     _tripKmCtrl.dispose();
@@ -247,6 +304,8 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
     _litersCtrl.dispose();
     _totalPaidCtrl.dispose();
     _costPerLiterCtrl.dispose();
+    _fullTankLitersCtrl.dispose();
+    _fuelLevelCtrl.dispose();
     _notesCtrl.dispose();
     super.dispose();
   }
@@ -377,14 +436,6 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
                             colors: colors,
                           ),
                         ],
-                        if (_lastRefillMileagePreviewKmPerLiter != null) ...[
-                          const SizedBox(height: 14),
-                          _FuelEfficiencyInsight(
-                            kmPerLiter: _lastRefillMileagePreviewKmPerLiter!,
-                            colors: colors,
-                            footnote: _mileagePreviewFootnote,
-                          ),
-                        ],
                       ],
                     ),
                   );
@@ -418,22 +469,6 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
                   return null;
                 },
               ),
-              ListenableBuilder(
-                listenable: _mileagePreviewTick,
-                builder: (context, _) {
-                  if (_lastRefillMileagePreviewKmPerLiter == null) {
-                    return const SizedBox.shrink();
-                  }
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 14),
-                    child: _FuelEfficiencyInsight(
-                      kmPerLiter: _lastRefillMileagePreviewKmPerLiter!,
-                      colors: colors,
-                      footnote: _mileagePreviewFootnote,
-                    ),
-                  );
-                },
-              ),
             ],
             const SizedBox(height: 20),
             Material(
@@ -442,20 +477,16 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
               child: SwitchListTile.adaptive(
                 value: _isFullTank,
                 onChanged: (fullTankEnabled) {
-                  setState(() {
-                    _isFullTank = fullTankEnabled;
-                    if (fullTankEnabled) {
-                      _useTotalPaidForQuantity = false;
-                      _totalPaidCtrl.clear();
-                    }
-                  });
+                  setState(() => _isFullTank = fullTankEnabled);
                   _bumpCostSummary();
                 },
-                title: const Text('Full tank fill'),
+                title: const Text('Full tank'),
                 subtitle: Text(
-                  widget.vehicle.tankCapacityLiters != null
-                      ? 'Uses ${Formatters.formatNumber(widget.vehicle.tankCapacityLiters!)} L × price per liter'
-                      : 'Add tank capacity in vehicle settings to use this',
+                  !_isFullTank
+                      ? 'Partial fill — liters are added to the next full tank\'s consumption'
+                      : _fullTankUsesCapacity
+                          ? 'Uses ${Formatters.formatNumber(widget.vehicle.tankCapacityLiters!)} L tank capacity × price per liter'
+                          : 'Filled to the brim — add tank capacity in vehicle settings to skip entering liters',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colors.textSecondary,
                   ),
@@ -466,8 +497,69 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
                 ),
               ),
             ),
-            const SizedBox(height: 12),
-            if (!_isFullTank) ...[
+            if (_showRefillOptions) ...[
+              const SizedBox(height: 10),
+              Material(
+                color: colors.cardBackground,
+                borderRadius: BorderRadius.circular(16),
+                child: SwitchListTile.adaptive(
+                  value: _missedPreviousFill,
+                  onChanged: (missed) {
+                    setState(() => _missedPreviousFill = missed);
+                    _bumpCostSummary();
+                  },
+                  title: const Text('Missed previous fill-up'),
+                  subtitle: Text(
+                    'Turn on if you refueled without logging it — '
+                    'consumption restarts from this fill',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colors.textSecondary,
+                    ),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(
+                      color: theme.dividerColor.withValues(alpha: 0.35),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+            const SizedBox(height: 20),
+            if (_fullTankUsesCapacity) ...[
+              _FullTankBadge(
+                liters: widget.vehicle.tankCapacityLiters!,
+                colors: colors,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                key: const ValueKey('fuel_full_tank_liters_field'),
+                controller: _fullTankLitersCtrl,
+                keyboardType: _fuelNumericKeyboard,
+                textInputAction: TextInputAction.done,
+                autocorrect: false,
+                enableSuggestions: false,
+                inputFormatters: _fuelNumericInputFormatters,
+                decoration: const InputDecoration(
+                  labelText: 'Liters pumped (optional)',
+                  hintText: 'Leave empty to use tank capacity',
+                  helperText:
+                      'Enter the pump reading if the tank was not empty — '
+                      'makes mileage exact',
+                  prefixIcon: Icon(Icons.water_drop_outlined),
+                  suffixText: 'L',
+                ),
+                validator: (rawValue) {
+                  if (rawValue == null || rawValue.trim().isEmpty) return null;
+                  final liters =
+                      double.tryParse(rawValue.trim().replaceAll(',', '.'));
+                  if (liters == null || liters <= 0) {
+                    return 'Enter a positive amount';
+                  }
+                  return null;
+                },
+              ),
+            ] else ...[
               Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -513,10 +605,13 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
                   spellCheckConfiguration: const SpellCheckConfiguration.disabled(),
                   enableIMEPersonalizedLearning: false,
                   inputFormatters: _fuelNumericInputFormatters,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Liters *',
-                    prefixIcon: Icon(Icons.water_drop_outlined),
+                    prefixIcon: const Icon(Icons.water_drop_outlined),
                     suffixText: 'L',
+                    helperText: _isFullTank
+                        ? 'No tank capacity saved for this vehicle'
+                        : null,
                   ),
                   validator: (rawValue) {
                     if (rawValue == null || rawValue.isEmpty) {
@@ -581,13 +676,64 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
                 ),
               ],
             ],
-            if (!_isFullTank) const SizedBox(height: 12),
-            if (_isFullTank && widget.vehicle.tankCapacityLiters != null) ...[
-              _FullTankBadge(
-                liters: widget.vehicle.tankCapacityLiters!,
-                colors: colors,
+            if (!_isFullTank && widget.vehicle.tankCapacityLiters != null) ...[
+              const SizedBox(height: 12),
+              TextFormField(
+                key: const ValueKey('fuel_level_percent_field'),
+                controller: _fuelLevelCtrl,
+                keyboardType: _fuelNumericKeyboard,
+                textInputAction: TextInputAction.done,
+                autocorrect: false,
+                enableSuggestions: false,
+                inputFormatters: _fuelNumericInputFormatters,
+                decoration: const InputDecoration(
+                  labelText: 'Fuel level after fill (optional)',
+                  hintText: 'Gauge reading, e.g. 75',
+                  helperText:
+                      'Lets mileage be estimated without a full tank',
+                  prefixIcon: Icon(Icons.speed_outlined),
+                  suffixText: '%',
+                ),
+                validator: (rawValue) {
+                  if (rawValue == null || rawValue.trim().isEmpty) return null;
+                  final level =
+                      double.tryParse(rawValue.trim().replaceAll(',', '.'));
+                  if (level == null || level < 0 || level > 100) {
+                    return 'Enter 0–100';
+                  }
+                  return null;
+                },
               ),
             ],
+            ListenableBuilder(
+              listenable: _costSummaryTick,
+              builder: (context, _) {
+                final capacity = widget.vehicle.tankCapacityLiters;
+                final liters = _effectiveLiters;
+                if (capacity == null || liters <= capacity) {
+                  return const SizedBox.shrink();
+                }
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(
+                    'More than the ${Formatters.formatLiters(capacity)} tank '
+                    'capacity — double-check the amount.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.error,
+                    ),
+                  ),
+                );
+              },
+            ),
+            ListenableBuilder(
+              listenable: _consumptionPreviewListenable,
+              builder: (context, _) => AnimatedSize(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOutCubic,
+                alignment: Alignment.topCenter,
+                child: _buildConsumptionPreview(colors),
+              ),
+            ),
             const SizedBox(height: 20),
             TextFormField(
               controller: _costPerLiterCtrl,
@@ -603,7 +749,7 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
               decoration: InputDecoration(
                 labelText: 'Cost per liter *',
                 prefixIcon: const Icon(Icons.payments_outlined),
-                helperText: !_isFullTank && _useTotalPaidForQuantity
+                helperText: _quantityFromTotalPaid
                     ? 'Used with total paid to calculate liters'
                     : null,
               ),
@@ -615,9 +761,7 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
                   rawValue.trim().replaceAll(',', '.'),
                 );
                 if (costPerLiter == null) return 'Invalid number';
-                if (!_isFullTank &&
-                    _useTotalPaidForQuantity &&
-                    costPerLiter <= 0) {
+                if (_quantityFromTotalPaid && costPerLiter <= 0) {
                   return 'Must be greater than 0 to calculate liters';
                 }
                 return null;
@@ -672,6 +816,54 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildConsumptionPreview(AppColors colors) {
+    if (!_showRefillOptions) return const SizedBox(width: double.infinity);
+    final draft = _draftEntryForPreview;
+    if (draft == null || draft.liters <= 0) {
+      return const SizedBox(width: double.infinity);
+    }
+
+    final segment = _consumptionPreview;
+    if (segment != null) {
+      final opening = _fuelHistory
+          .where((entry) => entry.id == segment.startEntryId)
+          .firstOrNull;
+      final partialFills = segment.fillCount - 1;
+      return Padding(
+        padding: const EdgeInsets.only(top: 14),
+        child: _FuelEfficiencyInsight(
+          kmPerLiter: segment.kmPerLiter,
+          colors: colors,
+          title: segment.isEstimated
+              ? 'Estimated consumption (fuel gauge)'
+              : 'Consumption since last full tank',
+          footnote: '${Formatters.formatDistance(segment.distanceKm)}'
+              '${opening != null ? ' since ${DateFormat('dd MMM').format(opening.date)}' : ''}'
+              ' ÷ ${Formatters.formatLiters(segment.liters)}'
+              '${partialFills > 0 ? ' (incl. $partialFills partial ${partialFills == 1 ? 'fill' : 'fills'})' : ''}'
+              ' · ${segment.litersPer100Km.toStringAsFixed(1)} L/100 km',
+        ),
+      );
+    }
+
+    final String note;
+    if (_missedPreviousFill) {
+      note = _isFullTank
+          ? 'Consumption tracking restarts from this full tank.'
+          : 'Consumption tracking restarts at your next full tank.';
+    } else if (!_isFullTank) {
+      note = 'Partial fill — ${Formatters.formatLiters(draft.liters)} will be '
+          'included when you next fill up to full.';
+    } else {
+      note = 'This full tank starts tracking — consumption appears at your '
+          'next full tank.';
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 14),
+      child: _ConsumptionNote(text: note, colors: colors),
     );
   }
 
@@ -754,21 +946,13 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
   }
 
   Future<void> _submit() async {
-    if (_isFullTank && widget.vehicle.tankCapacityLiters == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text(
-                'Set tank capacity in vehicle details to use full tank fill')),
-      );
-      return;
-    }
     if (!_formKey.currentState!.validate()) return;
 
     final costPerLiter = double.parse(
       _costPerLiterCtrl.text.trim().replaceAll(',', '.'),
     );
     final liters = _effectiveLiters;
-    if (!_isFullTank && _useTotalPaidForQuantity) {
+    if (_quantityFromTotalPaid) {
       if (liters <= 0 || !liters.isFinite) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -806,11 +990,8 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
         tripDistance = null;
       }
 
-      final efficiency = (distanceDriven != null && liters > 0)
-          ? distanceDriven / liters
-          : null;
       final isFullTank = _isFullTank;
-      final calculatedMileage = efficiency;
+      final missedPreviousFill = !_isFirstFuelLog && _missedPreviousFill;
 
       final entryId = const Uuid().v4();
       String? receiptImagePath;
@@ -818,7 +999,7 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
         receiptImagePath = await saveReceiptImage(entryId, _pickedReceiptPath!);
       }
 
-      final totalCostForEntry = (!_isFullTank && _useTotalPaidForQuantity)
+      final totalCostForEntry = _quantityFromTotalPaid
           ? double.parse(
               _totalPaidCtrl.text.trim().replaceAll(',', '.'),
             )
@@ -833,15 +1014,17 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
         costPerLiter: costPerLiter,
         totalCost: totalCostForEntry,
         notes: _notesCtrl.text.isEmpty ? null : _notesCtrl.text.trim(),
-        fuelEfficiency: efficiency,
         distanceDriven: distanceDriven,
         tripDistance: tripDistance,
         isFullTank: isFullTank,
-        calculatedMileage: calculatedMileage,
         receiptImagePath: receiptImagePath,
+        missedPreviousFill: missedPreviousFill,
+        fuelLevelPercent: isFullTank ? null : _parsedFuelLevelPercent,
       );
 
       await sl<AddFuelEntry>()(entry);
+      // Full-tank consumption spans several fills, so derive it from the whole chain.
+      await sl<RecalculateFuelConsumption>()(widget.vehicle.id);
 
       // Update vehicle odometer so next trip is relative to this reading.
       await sl<UpdateVehicle>()(
@@ -1014,11 +1197,13 @@ class _FuelEfficiencyInsight extends StatelessWidget {
   const _FuelEfficiencyInsight({
     required this.kmPerLiter,
     required this.colors,
+    required this.title,
     this.footnote,
   });
 
   final double kmPerLiter;
   final AppColors colors;
+  final String title;
   final String? footnote;
 
   @override
@@ -1056,7 +1241,7 @@ class _FuelEfficiencyInsight extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Last refill period',
+                  title,
                   style: theme.textTheme.labelMedium?.copyWith(
                     color: colors.textSecondary,
                     fontWeight: FontWeight.w700,
@@ -1074,7 +1259,7 @@ class _FuelEfficiencyInsight extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   footnote ??
-                      'Km per liter for the distance since your last refill, using the liters from that fill.',
+                      'Distance since your last full tank ÷ liters added since then.',
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: colors.textSecondary,
                     height: 1.35,
@@ -1357,7 +1542,41 @@ class _FuelContextCardSkeleton extends StatelessWidget {
   }
 }
 
-/// Modern badge for "full tank" liters when that option is selected.
+/// Muted explanation of how this fill affects consumption tracking.
+class _ConsumptionNote extends StatelessWidget {
+  const _ConsumptionNote({required this.text, required this.colors});
+
+  final String text;
+  final AppColors colors;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: colors.fuelColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.fuelColor.withValues(alpha: 0.22)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline_rounded, size: 20, color: colors.fuelColor),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: theme.textTheme.bodySmall?.copyWith(height: 1.35),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Shows the full-tank liters taken from the vehicle's tank capacity.
 class _FullTankBadge extends StatelessWidget {
   const _FullTankBadge({
     required this.liters,
@@ -1372,11 +1591,10 @@ class _FullTankBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: colors.fuelColor.withOpacity(0.1),
+        color: colors.fuelColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: colors.fuelColor.withOpacity(0.25),
-          width: 1,
+          color: colors.fuelColor.withValues(alpha: 0.25),
         ),
       ),
       child: Row(
@@ -1393,9 +1611,9 @@ class _FullTankBadge extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Full tank',
+                  'Full tank (from vehicle)',
                   style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.extension<AppColors>()!.textSecondary,
+                    color: colors.textSecondary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

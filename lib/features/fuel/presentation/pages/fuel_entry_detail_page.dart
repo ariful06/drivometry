@@ -8,17 +8,21 @@ import '../../../../injection_container.dart';
 import '../../../vehicles/domain/entities/vehicle.dart';
 import '../../../vehicles/domain/usecases/vehicle_usecases.dart';
 import '../../domain/entities/fuel_entry.dart';
+import '../../domain/services/fuel_consumption_calculator.dart';
 
 /// Passed via GoRouter `extra` when opening [FuelEntryDetailPage].
 class FuelEntryDetailArgs {
   const FuelEntryDetailArgs({
     required this.entry,
     this.previousEntry,
+    this.consumption,
   });
 
   final FuelEntry entry;
-  /// Chronologically older refill; used for period distance / km per L like the list tile.
+  /// Chronologically older refill; used for distance since previous fill.
   final FuelEntry? previousEntry;
+  /// Full-tank period this fill closes, if any.
+  final FuelConsumptionSegment? consumption;
 }
 
 /// Read-only fuel log with receipt when available.
@@ -46,12 +50,6 @@ class _FuelEntryDetailPageState extends State<FuelEntryDetailPage> {
     return distanceDeltaKm > 0 ? distanceDeltaKm : null;
   }
 
-  double? get _periodKmPerLiter {
-    final dist = _periodDistanceKm;
-    final prev = args.previousEntry;
-    if (dist == null || prev == null || prev.liters <= 0) return null;
-    return dist / prev.liters;
-  }
 
   @override
   void initState() {
@@ -141,8 +139,18 @@ class _FuelEntryDetailPageState extends State<FuelEntryDetailPage> {
               ),
               _DetailRow(
                 label: 'Full tank',
-                value: _e.isFullTank ? 'Yes' : 'No',
+                value: _e.isFullTank ? 'Yes' : 'No (partial)',
               ),
+              if (_e.fuelLevelPercent != null)
+                _DetailRow(
+                  label: 'Fuel level after fill',
+                  value: '${_e.fuelLevelPercent!.toStringAsFixed(0)} %',
+                ),
+              if (_e.missedPreviousFill)
+                const _DetailRow(
+                  label: 'Missed previous fill',
+                  value: 'Yes',
+                ),
               if (_e.tripDistance != null && _e.tripDistance! > 0)
                 _DetailRow(
                   label: 'Trip (logged)',
@@ -164,27 +172,32 @@ class _FuelEntryDetailPageState extends State<FuelEntryDetailPage> {
                   label: 'Since previous fill',
                   value: Formatters.formatDistance(_periodDistanceKm!),
                 ),
-              if (_periodKmPerLiter != null)
+              if (args.consumption case final segment?) ...[
                 _DetailRow(
-                  label: 'Period economy',
-                  value:
-                      '${Formatters.formatFuelEfficiency(_periodKmPerLiter!)} '
-                      '(distance since last fill / liters from previous log)',
+                  label: segment.isEstimated
+                      ? 'Consumption (estimated)'
+                      : 'Consumption',
+                  value: Formatters.formatFuelEfficiency(segment.kmPerLiter),
                   valueColor: colors.maintenanceColor,
                 ),
-              if (_e.fuelEfficiency != null && _e.fuelEfficiency! > 0)
                 _DetailRow(
-                  label: 'Efficiency (this fill)',
-                  value: Formatters.formatFuelEfficiency(_e.fuelEfficiency!),
+                  label: 'Per 100 km',
+                  value: '${segment.litersPer100Km.toStringAsFixed(1)} L',
                 ),
-              if (_e.calculatedMileage != null &&
-                  _e.calculatedMileage! > 0 &&
-                  (_e.fuelEfficiency == null ||
-                      (_e.calculatedMileage! - _e.fuelEfficiency!).abs() >
-                          0.001))
                 _DetailRow(
-                  label: 'Calculated',
-                  value: Formatters.formatFuelEfficiency(_e.calculatedMileage!),
+                  label: segment.isEstimated
+                      ? 'Since previous fill'
+                      : 'Since last full tank',
+                  value: '${Formatters.formatDistance(segment.distanceKm)} · '
+                      '${Formatters.formatLiters(segment.liters)}'
+                      '${segment.includesPartialFills ? ' (${segment.fillCount} fills)' : ''}',
+                ),
+              ] else
+                _DetailRow(
+                  label: 'Consumption',
+                  value: _e.isFullTank
+                      ? 'Needs a previous full tank'
+                      : 'Counted at next full tank',
                 ),
               const SizedBox(height: 16),
               _SectionTitle(theme: theme, label: 'Receipt'),

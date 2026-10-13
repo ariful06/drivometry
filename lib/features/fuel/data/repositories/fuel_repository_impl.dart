@@ -32,6 +32,12 @@ class FuelRepositoryImpl implements FuelRepository {
   }
 
   @override
+  Future<void> updateFuelEntries(List<FuelEntry> entries) =>
+      _dataSource.saveFuelEntries(
+        entries.map(FuelEntryModel.fromEntity).toList(),
+      );
+
+  @override
   Future<void> deleteFuelEntry(String id) => _dataSource.deleteFuelEntry(id);
 
   @override

@@ -18,6 +18,8 @@ class FuelEntryModel {
     this.isFullTank = false,
     this.calculatedMileage,
     this.receiptImagePath,
+    this.missedPreviousFill = false,
+    this.fuelLevelPercent,
   });
 
   final String id;
@@ -34,6 +36,8 @@ class FuelEntryModel {
   final bool isFullTank;
   final double? calculatedMileage;
   final String? receiptImagePath;
+  final bool missedPreviousFill;
+  final double? fuelLevelPercent;
 
   factory FuelEntryModel.fromMap(Map<String, dynamic> map) => FuelEntryModel(
         id: map['id'] as String,
@@ -53,11 +57,20 @@ class FuelEntryModel {
         tripDistance: map['trip_distance'] != null
             ? (map['trip_distance'] as num).toDouble()
             : null,
-        isFullTank: (map['is_full_tank'] as int?) == 1,
+        // Rows written before full/partial tracking have no
+        // 'missed_previous_fill' key; every fill was treated as a refill then,
+        // so read them as full tanks (full-to-full) instead of partials.
+        isFullTank: map.containsKey('missed_previous_fill')
+            ? (map['is_full_tank'] as int?) == 1
+            : true,
         calculatedMileage: map['calculated_mileage'] != null
             ? (map['calculated_mileage'] as num).toDouble()
             : null,
         receiptImagePath: map['receipt_image_path'] as String?,
+        missedPreviousFill: (map['missed_previous_fill'] as int?) == 1,
+        fuelLevelPercent: map['fuel_level_percent'] != null
+            ? (map['fuel_level_percent'] as num).toDouble()
+            : null,
       );
 
   Map<String, dynamic> toMap() => {
@@ -75,6 +88,8 @@ class FuelEntryModel {
         'is_full_tank': isFullTank ? 1 : 0,
         'calculated_mileage': calculatedMileage,
         'receipt_image_path': receiptImagePath,
+        'missed_previous_fill': missedPreviousFill ? 1 : 0,
+        'fuel_level_percent': fuelLevelPercent,
       };
 
   factory FuelEntryModel.fromEntity(FuelEntry e) => FuelEntryModel(
@@ -92,6 +107,8 @@ class FuelEntryModel {
         isFullTank: e.isFullTank,
         calculatedMileage: e.calculatedMileage,
         receiptImagePath: e.receiptImagePath,
+        missedPreviousFill: e.missedPreviousFill,
+        fuelLevelPercent: e.fuelLevelPercent,
       );
 
   FuelEntry toEntity() => FuelEntry(
@@ -109,5 +126,7 @@ class FuelEntryModel {
         isFullTank: isFullTank,
         calculatedMileage: calculatedMileage,
         receiptImagePath: receiptImagePath,
+        missedPreviousFill: missedPreviousFill,
+        fuelLevelPercent: fuelLevelPercent,
       );
 }

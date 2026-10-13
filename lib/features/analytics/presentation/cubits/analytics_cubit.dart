@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../fuel/domain/repositories/fuel_repository.dart';
+import '../../../fuel/domain/services/fuel_consumption_calculator.dart';
 import '../../../maintenance/domain/repositories/maintenance_repository.dart';
 import '../../../rentals/domain/entities/rental_entry.dart';
 import '../../../rentals/domain/repositories/rental_repository.dart';
@@ -45,20 +46,11 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
               (runningKm, fuelEntryRow) =>
                   runningKm + (fuelEntryRow.distanceDriven ?? 0),
             );
-        final efficiencySamples = fuelEntries
-            .where(
-              (fuelEntryRow) => fuelEntryRow.fuelEfficiency != null,
-            )
-            .toList();
-        final avgEfficiency = efficiencySamples.isEmpty
-            ? null
-            : efficiencySamples.fold<double>(
-                    0,
-                    (runningEfficiencySum, fuelEntryRow) =>
-                        runningEfficiencySum +
-                        fuelEntryRow.fuelEfficiency!,
-                  ) /
-                efficiencySamples.length;
+        final avgEfficiency =
+            FuelConsumptionCalculator.averageKmPerLiter(
+          fuelEntries,
+          tankCapacityLiters: vehicle.tankCapacityLiters,
+        );
 
         final rentalListForVehicle =
             allRentals

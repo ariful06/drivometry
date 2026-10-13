@@ -6,6 +6,8 @@ import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_widgets.dart';
 import '../../../../injection_container.dart';
 import '../../../fuel/presentation/cubits/fuel_cubit.dart';
+import '../../../fuel/domain/entities/fuel_entry.dart';
+import '../../../fuel/domain/services/fuel_consumption_calculator.dart';
 import '../../../fuel/presentation/widgets/fuel_entry_tile.dart';
 import '../../../maintenance/presentation/cubits/maintenance_cubit.dart';
 import '../../../maintenance/presentation/widgets/maintenance_entry_tile.dart';
@@ -246,7 +248,11 @@ class _FuelTab extends StatelessWidget {
                     subtitle: 'Tap Log Fuel below to add your first fill-up.',
                   ),
                 )
-              : _FuelList(entries: entries, totalCost: totalCost),
+              : _FuelList(
+                  entries: entries,
+                  totalCost: totalCost,
+                  tankCapacityLiters: vehicle.tankCapacityLiters,
+                ),
         };
       },
     );
@@ -254,26 +260,24 @@ class _FuelTab extends StatelessWidget {
 }
 
 class _FuelList extends StatelessWidget {
-  const _FuelList({required this.entries, required this.totalCost});
+  const _FuelList({
+    required this.entries,
+    required this.totalCost,
+    this.tankCapacityLiters,
+  });
   final List entries;
   final double totalCost;
+  final double? tankCapacityLiters;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
-    final latestDist = entries.length >= 2
-        ? (() {
-            final latestFillDistanceKm =
-                entries[0].odometer - entries[1].odometer;
-            return latestFillDistanceKm > 0 ? latestFillDistanceKm : null;
-          })()
-        : null;
-    final latestRefillLiters = entries.length >= 2 ? entries[1].liters : null;
-    final latestMileage = (latestDist != null &&
-            latestRefillLiters != null &&
-            latestRefillLiters > 0)
-        ? latestDist / latestRefillLiters
-        : null;
+    final segments = FuelConsumptionCalculator.segments(
+      entries.cast<FuelEntry>(),
+      tankCapacityLiters: tankCapacityLiters,
+    );
+    final consumptionByEntryId = FuelConsumptionCalculator.byEndEntryId(segments);
+    final latestConsumption = segments.isEmpty ? null : segments.last;
 
     return CustomScrollView(
       slivers: [
@@ -283,11 +287,11 @@ class _FuelList extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (entries.length >= 2 && latestMileage != null) ...[
+                if (latestConsumption != null) ...[
                   _FuelHeroInsight(
-                    mileagePerLiter: latestMileage,
-                    distanceDriven: latestDist!,
-                    fuelRefill: latestRefillLiters!,
+                    mileagePerLiter: latestConsumption.kmPerLiter,
+                    distanceDriven: latestConsumption.distanceKm,
+                    fuelRefill: latestConsumption.liters,
                     colors: colors,
                   ),
                   const SizedBox(height: 20),
@@ -322,6 +326,7 @@ class _FuelList extends StatelessWidget {
                 child: FuelEntryTile(
                   entry: entries[i],
                   previousEntry: i + 1 < entries.length ? entries[i + 1] : null,
+                  consumption: consumptionByEntryId[entries[i].id],
                 ),
               ),
               childCount: entries.length,
@@ -377,7 +382,7 @@ class _FuelHeroInsight extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Last fill efficiency',
+            'Last full-tank consumption',
             style: theme.textTheme.labelLarge?.copyWith(
               color: colors.textSecondary,
               fontWeight: FontWeight.w500,
@@ -409,7 +414,7 @@ class _FuelHeroInsight extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            '${Formatters.formatDistance(distanceDriven)} driven · ${Formatters.formatLiters(fuelRefill)} refill',
+            '${Formatters.formatDistance(distanceDriven)} driven · ${Formatters.formatLiters(fuelRefill)} since previous full tank',
             style: theme.textTheme.bodySmall?.copyWith(
               color: colors.textSecondary,
             ),
