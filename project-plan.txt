@@ -1,0 +1,511 @@
+# Vehicle Expense & Maintenance Manager — Rough Product Plan
+
+Your app should be an offline-first Flutter application for vehicle fuel tracking, expense management, preventive maintenance, spare-part lifecycle tracking, and reminders. The goal is to help users understand the total cost of owning a vehicle, prevent unexpected repairs, and plan future expenses.
+
+Since you have already developed part of the application, the next step should be to use Claude Pro as a codebase auditor and technical planner first, rather than asking it to rewrite the app. It should compare your existing implementation against the requirements, identify gaps, and create prioritized GitHub issues for incremental development.
+
+## 1. Core application modules
+
+![Fuelio | Gas Log, Mileage Tracker & Car Expense Manager](https://images.openai.com/static-rsc-4/FrHaDS_TEzmtz9EwPA8Qd2rFcrByv4l2zCIINZzuPxWzWIItPIw_KkLtPVGTgBiPQIzz9XDD9d1BwKU0R3FzqyI5LPH3AptsnHKVLIe085A2jleULSucdvImLvKM0ARjhfxpQN9tb1U4pkN7MFxI5nhOY7foF-BsYPSfnuQGh_U?purpose=inline)
+
+Add to Favorites
+
+1. Fuel log and vehicle dashboard
+
+* Support cars, bikes, and multiple vehicles.
+
+* Record refueling date, odometer, fuel volume, total cost, price per unit, fuel station, and full/partial tank.
+
+* Calculate fuel economy, cost per kilometer, average fuel price, and monthly fuel expenses.
+
+* Show the latest odometer, recent entries, and upcoming maintenance.
+
+* Use Fuelio-style full-tank consumption calculations, with documented handling for partial fills and missing full-tank entries.
+
+![Car Maintenance App — Track Service History & Repairs | ServiceLog](https://images.openai.com/static-rsc-4/VDNUuJUvEKZP2Wiwq2hnbLj-_U9DlYry-gd7Ap9VJbq009JU4PKy7fe46zmdNQgyUyQu4hKa1phnnKyker2SpsVNd-HSotg4PhlcVRui-yakkvxqb2aqyRrAMxFKOpYHAkO_EXx5chu7LqGjyNwc1TjPhWcVbv8-0nZG9yztGgE?purpose=inline)
+
+Add to Favorites
+
+2. Maintenance and parts
+
+Two tabs: Parts and Maintenance.
+
+* Parts: part name, category, installation date, cost, expected lifespan in months or kilometers, warranty, and replacement history.
+
+* Maintenance: oil changes, filters, brakes, tires, batteries, servicing, repairs, and custom tasks.
+
+* Support interval-based schedules: every 3, 6, 9, or 12 months; every 1,000, 2,000, 5,000 km, or custom intervals.
+
+* Track last service, next due date, next due odometer, actual cost, and service history.
+
+* Support date-based, distance-based, and combined maintenance rules.
+
+![Car Expense Tracker · Running Costs, Fuel, Service, Insurance | PitSync](https://images.openai.com/static-rsc-4/_fgaafCqixrRUkSoMPqZnAEB_6WAYrI2ZOSVbS9KKL5fO-BpQbAYNT2xdoVQM9MBHwMEAQt-sdYccqwSOqOhCl1wM1IS4gRHC_0Glhvonk4MnmA9jWLEUPf_Bs6LP4OUDE4GyOBsFlouxcYrFVx0NyyvCWIRpQQ-R9PtGa1eLko?purpose=inline)
+
+Add to Favorites
+
+3. Statistics and expense analytics
+
+* Bottom navigation item for Statistics.
+
+* Monthly, quarterly, yearly, and custom date-range reports.
+
+* Fuel, maintenance, parts, repairs, insurance, registration, parking, and other expenses.
+
+* Pie charts for expense distribution and bar/line charts for monthly trends.
+
+* Total cost, cost per kilometer, fuel economy, and vehicle-wise comparisons.
+
+* Export filtered reports to Excel-compatible files and PDF.
+
+![Vehicle Service History Software for Fleet Health & Productivity](https://images.openai.com/static-rsc-4/ovQjlJ0VWp2UU4Hyg5-37_bsA6nyrZ5exm2okWYZxAPX7vYdW6NDrvNjbPF9olIrtGQx7u4z7VaqH9LbiZLhA_x4A85d8CrAlkxtFk171Vjjnl7WvwwCEXNfTx7byFF7XZAKhfOwjG5P8330X77Okg2V4F9QDuq1vqdmeeJPEkk?purpose=inline)
+
+Add to Favorites
+
+4. Notifications and reminders
+
+* Upcoming maintenance and part replacements.
+
+* Date-based and odometer-based alerts.
+
+* Custom reminders for insurance, registration, taxes, inspections, and everyday personal tasks.
+
+* Upcoming, due today, overdue, completed, and dismissed states.
+
+* Configurable advance alerts and notification preferences.
+
+* Fully local notifications without a server or internet connection.
+
+## 2. Recommended bottom navigation
+
+Home
+
+Fuel
+
+Maintenance
+
+Statistics
+
+Reminders
+
+Place Settings, vehicle management, backup/export, and personal reminders under accessible screens or menus. Maintenance can contain the Parts and Maintenance tabs.
+
+## 3. Important improvements to make the app more useful
+
+These requirements should be included in the plan Claude prepares.
+
+| Area                    | Improvement                                                                                                                                                                |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Multiple vehicles       | Each fuel entry, part, expense, and maintenance record must belong to the correct vehicle.                                                                                 |
+| Fuel calculations       | Use full-tank-to-full-tank consumption for reliable mileage; exclude or flag incomplete intervals rather than reporting misleading values.                                 |
+| Odometer validation     | Detect duplicate, missing, or decreasing readings and let users correct mistakes.                                                                                          |
+| Maintenance forecasting | Calculate next due date and kilometer reading independently; alert when either applicable threshold is reached.                                                            |
+| Expense tracking        | Separate purchase/installation costs, routine servicing, repairs, and recurring ownership costs. Avoid double-counting a part cost and its associated maintenance invoice. |
+| Flexible reminders      | Let users choose advance notice, repeat intervals, snooze, complete, and dismiss.                                                                                          |
+| Offline reliability     | Store everything locally, schedule notifications locally, and require no login or backend.                                                                                 |
+| Data portability        | Export to `.xlsx` or CSV and PDF; include date filters, vehicle filters, and all relevant record details.                                                                  |
+| Data safety             | Provide database backup/restore, validation, and migration handling before releasing updates.                                                                              |
+| Usability               | Quick-add fuel and expense actions, sensible defaults, searchable history, and accessible charts.                                                                          |
+
+Key technical decision: A vehicle maintenance reminder may be triggered by time, distance, or whichever comes first. Distance-based reminders require an odometer update, so the app should explain when its distance estimate is stale. Operating-system restrictions also mean local notifications must be rescheduled and checked appropriately after reboot, app updates, or permission changes.
+
+## 4. Development phases
+
+Phase 0 — Existing codebase audit
+
+Start here
+
+Inspect the Flutter project, database, navigation, calculations, notification implementation, tests, and current GitHub setup. Map existing features against requirements and identify defects before planning changes.
+
+Phase 1 — Data foundation
+
+Finalize vehicle, fuel, expense, part, maintenance, reminder, and service-history models. Add validation, migrations, and repository/service boundaries.
+
+Phase 2 — Core tracking
+
+Complete fuel calculations, maintenance scheduling, parts lifecycle tracking, and expense categorization.
+
+Phase 3 — Reminders and analytics
+
+Implement local notifications, reminder lifecycle management, dashboard statistics, charts, and expense reports.
+
+Phase 4 — Export and release quality
+
+Implement Excel/PDF export, backup/restore, automated tests, CI, performance checks, and release validation.
+
+The phases are a proposed sequence, not a requirement to rebuild existing features. Claude should reorder or skip work based on what your codebase already does correctly.
+
+## 5. Copy this prompt into Claude Pro
+
+Provide Claude with your existing repository or open the project in Claude Code. The following prompt instructs it to produce an evidence-based plan before modifying anything.
+
+Project: Offline-First Vehicle Fuel, Expense & Maintenance Manager
+
+# Project: Offline-First Vehicle Fuel, Expense & Maintenance Manager
+
+## Role
+
+Act as a senior Flutter architect, product analyst, QA engineer, and GitHub project manager. Audit my existing application before proposing changes. Do not assume the project is new, and do not rewrite working features without evidence.
+
+## Product objective
+
+Develop an offline-first Flutter application for cars, motorcycles, and other vehicles. It tracks fuel consumption, vehicle ownership expenses, spare-part lifecycles, preventive maintenance, and local reminders. All core functionality must work without internet access, user accounts, or a backend.
+
+## Functional requirements
+
+### 1. Vehicle management and dashboard
+
+* Support multiple vehicles, each with its own odometer, fuel history, parts, maintenance history, expenses, and reminders.
+
+* Display recent activity, current-period expenses, fuel economy, and upcoming or overdue maintenance.
+
+* Support configurable distance and currency units.
+
+### 2. Fuel tracking
+
+* Record date/time, odometer, volume, total price, unit price, fuel type, station, full/partial fill status, and notes.
+
+* Calculate fuel economy using a documented full-tank-to-full-tank algorithm inspired by Fuelio.
+
+* Handle partial fills, missing full-fill records, duplicate entries, odometer corrections, and invalid readings.
+
+* Calculate fuel cost per distance unit, average fuel price, and period-based fuel expenses.
+
+* Define calculation rules and unit tests before implementing changes. Do not invent precise consumption figures when the available data is insufficient.
+
+### 3. Maintenance and parts
+
+Create two tabs: Parts and Maintenance.
+
+Parts:
+
+* Store part name, category, compatible vehicle, purchase and installation dates, purchase/installation cost, expected lifespan, warranty, odometer at installation, and replacement history.
+
+* Support lifespan in months, kilometers, or both.
+
+* Track active, due, replaced, and retired parts.
+
+* Preserve historical records when a part is replaced.
+
+Maintenance:
+
+* Include oil changes, filters, brakes, tires, batteries, servicing, repairs, and custom tasks.
+
+* Support intervals such as 3, 6, 9, or 12 months and 1,000, 2,000, 5,000 km, or user-defined values.
+
+* Store last-completed date and odometer, next due date and odometer, estimated cost, actual cost, notes, and service history.
+
+* Support date-only, distance-only, and combined schedules.
+
+* Define how next-due values are calculated and what happens when maintenance is completed early or late.
+
+### 4. Expenses and statistics
+
+* Categorize fuel, maintenance, parts, repairs, insurance, registration, taxes, parking, and miscellaneous expenses.
+
+* Provide monthly, quarterly, yearly, and custom-range analytics.
+
+* Include expense-distribution charts, monthly trend charts, category breakdowns, total cost, cost per kilometer, and vehicle comparisons.
+
+* Prevent double-counting between maintenance invoices and parts purchased or installed as part of those invoices.
+
+* Document financial aggregation rules and edge cases.
+
+### 5. Notifications and reminders
+
+* Provide a reminder center for upcoming, due, overdue, completed, and dismissed items.
+
+* Support maintenance, part replacement, insurance, registration, inspection, and custom personal reminders.
+
+* Allow advance notice, local notification scheduling, snoozing, completion, dismissal, and notification preferences.
+
+* Handle date-based and odometer-based triggers, including stale odometer information.
+
+* Work offline with local notifications. Handle permission denial, reboot, time-zone changes, app updates, and operating-system scheduling limitations where applicable.
+
+* Avoid duplicate notifications and define how notification rescheduling works.
+
+### 6. Export and data protection
+
+* Export data to Excel-compatible XLSX/CSV and PDF.
+
+* Support date-range and vehicle filters, meaningful column names, totals, and readable report formatting.
+
+* Include local backup and restore, import validation, error handling, and database migration safety.
+
+* Ensure export and restore work offline.
+
+### 7. User experience
+
+* Use bottom navigation for Home, Fuel, Maintenance, Statistics, and Reminders.
+
+* Keep Parts and Maintenance as tabs within Maintenance.
+
+* Provide quick-add actions, searchable history, sensible defaults, validation, empty states, and clear overdue indicators.
+
+* Preserve existing design patterns where they are effective. Propose usability improvements without unnecessary redesign.
+
+## Stage 1: Audit the existing project
+
+Do not modify files or create GitHub issues yet.
+
+1. Inspect the repository structure, Flutter/Dart versions, dependencies, architecture, routing, state management, database schema, migrations, and current UI.
+
+2. Inspect each requirement against the actual implementation.
+
+3. Identify existing features, partially implemented features, missing features, defects, duplicated logic, technical debt, and risks.
+
+4. Inspect existing tests, build configuration, linting, GitHub workflows, issue templates, and project conventions.
+
+5. Cite relevant file paths and class/function names as evidence. Never claim a feature exists merely because its screen or model is present.
+
+6. Run safe, available checks such as formatting verification, static analysis, unit tests, and relevant builds. Report commands and actual outcomes. Do not conceal failures.
+
+7. Identify questions that genuinely block a decision; otherwise state reasonable assumptions explicitly.
+
+Produce:
+
+* A feature-by-feature requirements traceability matrix with status: Complete, Partial, Missing, or Defective.
+
+* An architecture and data-model assessment.
+
+* A prioritized bug, usability, security, reliability, and technical-debt list.
+
+* A proposed target architecture and migration strategy that preserve working code.
+
+* A list of decisions requiring my approval.
+
+## Stage 2: Create an actionable implementation plan
+
+After completing the audit, prepare a phased roadmap ordered by dependency, user value, and risk.
+
+For every task include:
+
+* Unique task ID and proposed GitHub issue title.
+
+* Problem statement and evidence from the existing code.
+
+* User story and business value.
+
+* Scope and explicit non-goals.
+
+* Acceptance criteria written as testable statements.
+
+* Dependencies and blockers.
+
+* Priority: P0 critical, P1 high, P2 medium, P3 low.
+
+* Estimate in relative effort: XS, S, M, L, or XL.
+
+* Testing strategy and regression risks.
+
+* Relevant files or modules expected to change, clearly marked as estimates.
+
+* Definition of done.
+
+Group work into milestones:
+M0: Audit and correctness fixes.
+M1: Data foundation and vehicle management.
+M2: Fuel tracking and calculation correctness.
+M3: Parts and maintenance scheduling.
+M4: Notifications and reminders.
+M5: Statistics and export.
+M6: Reliability, backup/restore, accessibility, and release readiness.
+
+Reorder milestones if the existing codebase or dependencies justify a different sequence. Avoid creating duplicate tickets for functionality that already meets acceptance criteria.
+
+## Stage 3: GitHub planning and automation
+
+First inspect the available GitHub integration, repository permissions, existing labels, milestones, issue templates, and workflows.
+
+Prepare issues with labels such as bug, feature, enhancement, testing, technical-debt, and documentation. Link dependencies and group related tasks into milestones where supported.
+
+Create or update issues only after presenting the audit and proposed ticket list for my approval, unless I explicitly authorize issue creation without a review step. Never claim an issue or workflow was created unless the operation succeeded.
+
+Recommend a development workflow that:
+
+* Runs formatting checks, Flutter static analysis, and tests on pull requests.
+
+* Builds relevant targets where practical.
+
+* Uses small, independently reviewable pull requests linked to issues.
+
+* Requires acceptance criteria and tests before closure.
+
+* Avoids automatically merging or deploying unreviewed changes.
+
+* Uses dependency caching and pinned or controlled tool versions where appropriate.
+
+Provide example GitHub Actions YAML only after inspecting the project's actual Flutter version, directory structure, and test commands. Do not introduce secrets or cloud dependencies into this offline-first application.
+
+## Stage 4: Incremental implementation
+
+Do not implement the whole roadmap in one change.
+
+Once the plan is approved:
+
+1. Select the highest-priority unblocked issue.
+
+2. Confirm its acceptance criteria and dependencies.
+
+3. Implement the smallest complete change.
+
+4. Add or update unit, widget, and integration tests as appropriate.
+
+5. Run formatting, static analysis, tests, and relevant builds.
+
+6. Report changed files, test outcomes, unresolved issues, and manual verification steps.
+
+7. Prepare a pull request summary linked to the GitHub issue.
+
+8. Proceed to the next issue only after the current change meets its definition of done.
+
+## Technical constraints
+
+* Flutter and Dart.
+
+* Offline-first; no backend or internet dependency for core features.
+
+* Local persistence with explicit schema migrations.
+
+* Maintainable separation between presentation, business logic, and persistence.
+
+* Local notifications, with platform-specific behavior documented.
+
+* Export to XLSX/CSV and PDF.
+
+* Testable calculation and scheduling logic.
+
+* No destructive database migration or loss of user data.
+
+* Keep dependencies minimal and verify package compatibility with the current project.
+
+## Expected final deliverables
+
+1. Evidence-based codebase audit.
+
+2. Requirements traceability matrix.
+
+3. Recommended architecture and data model.
+
+4. Prioritized roadmap with dependencies.
+
+5. GitHub-ready issue backlog and milestone proposal.
+
+6. CI/CD workflow recommendation and suitable workflow files.
+
+7. Test strategy and release checklist.
+
+8. First recommended implementation ticket.
+
+9. Explicit distinction between verified facts, assumptions, and proposed changes.
+
+Start with Stage 1 only. Do not edit code, create issues, or change repository settings during the initial audit.
+
+## 6. GitHub automation: recommended workflow
+
+The goal is to let Claude plan and implement work in small increments while GitHub provides traceability and automated verification.
+
+1. Audit repository
+
+Claude reviews code, existing features, and test coverage
+
+2. Approve backlog
+
+GitHub issues, priorities, dependencies, milestones
+
+3. Implement one issue
+
+Dedicated branch and focused changes
+
+4. Pull request and CI
+
+Formatting, analysis, automated tests, review
+
+5. Review, merge, and repeat
+
+Close issue only when acceptance criteria are met
+
+### Example initial GitHub tickets
+
+These are proposed tickets, not tickets already created.
+
+AUD-01
+
+P0
+
+Audit existing Flutter architecture and feature completeness
+
+Map requirements to implementation and identify correctness risks.
+
+FUEL-01
+
+P1
+
+Validate fuel economy and full-tank calculation logic
+
+Define calculation rules and test partial fills, missing readings, and odometer corrections.
+
+MAINT-01
+
+P1
+
+Implement maintenance interval and due-state engine
+
+Calculate date- and distance-based due states with combined schedules.
+
+PART-01
+
+P1
+
+Add part lifespan and replacement history tracking
+
+Track installed parts, expected lifespan, replacement cost, and historical records.
+
+NOTIF-01
+
+P1
+
+Implement reliable local maintenance reminders
+
+Handle scheduling, rescheduling, duplicate prevention, permissions, and overdue items.
+
+STAT-01
+
+P2
+
+Build expense analytics and reporting
+
+Aggregate expenses accurately and add category and time-series charts.
+
+EXPORT-01
+
+P2
+
+Add offline XLSX, CSV, and PDF export
+
+Support filtered reports, totals, file sharing, and export error handling.
+
+CI-01
+
+P1
+
+Configure Flutter CI for pull requests
+
+Automate formatting checks, static analysis, tests, and relevant build verification.
+
+## 7. How to execute this plan with Claude Pro
+
+1. Open your existing project in Claude Code or provide Claude with access to the repository and relevant project files.
+
+2. Paste the planning prompt above. Have Claude complete the audit without changing files.
+
+3. Review the traceability matrix and roadmap. Correct any inaccurate assumptions about your current implementation.
+
+4. Approve the backlog and ask Claude to create GitHub issues through an authorized integration or GitHub CLI.
+
+5. Implement one ticket at a time and require passing tests before merging.
+
+For automated GitHub issue creation, Claude needs an authenticated GitHub integration or appropriately permissioned GitHub CLI. For automated code changes, use a controlled branch and pull-request workflow rather than allowing unrestricted edits to the main branch.
+
+My recommendation: Make Phase 0 your immediate priority. The highest-risk areas are fuel calculation correctness, maintenance due-date logic, local notification reliability, and preserving offline data during schema changes. Validate those against your existing implementation before investing in additional screens or visual polish.
