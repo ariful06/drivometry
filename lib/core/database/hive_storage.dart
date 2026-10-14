@@ -3,6 +3,8 @@ import 'dart:developer' as dev;
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import 'schema_migrations.dart';
+
 /// Hive box names. Open these in init and access via the functions below.
 const String kVehiclesBox = 'vehicles';
 const String kFuelEntriesBox = 'fuel_entries';
@@ -18,6 +20,7 @@ Future<void> initHive() async {
   await Hive.openBox<dynamic>(kMaintenanceEntriesBox);
   await Hive.openBox<dynamic>(kPartReplacementsBox);
   await Hive.openBox<dynamic>(kRentalEntriesBox);
+  await runMigrations(await Hive.openBox<dynamic>(kMetaBox));
   if (kDebugMode) {
     dev.log('Hive initialized and boxes opened', name: 'HiveStorage');
   }
@@ -26,6 +29,7 @@ Future<void> initHive() async {
 /// Provides access to Hive boxes. Use after [initHive].
 Box<dynamic> vehiclesBox() => Hive.box<dynamic>(kVehiclesBox);
 Box<dynamic> fuelEntriesBox() => Hive.box<dynamic>(kFuelEntriesBox);
-Box<dynamic> maintenanceEntriesBox() => Hive.box<dynamic>(kMaintenanceEntriesBox);
+Box<dynamic> maintenanceEntriesBox() =>
+    Hive.box<dynamic>(kMaintenanceEntriesBox);
 Box<dynamic> partReplacementsBox() => Hive.box<dynamic>(kPartReplacementsBox);
 Box<dynamic> rentalEntriesBox() => Hive.box<dynamic>(kRentalEntriesBox);
