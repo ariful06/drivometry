@@ -1,0 +1,33 @@
+name: PR Notify
+
+# GitHub does not notify you about your own actions, and PRs here are opened
+# under the owner's account. A comment from github-actions[bot] that
+# @mentions the owner does trigger a notification (GitHub Mobile push).
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  notify:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Mention owner on the PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          OWNER: ${{ github.repository_owner }}
+          NUMBER: ${{ github.event.pull_request.number }}
+          TITLE: ${{ github.event.pull_request.title }}
+          AUTHOR: ${{ github.event.pull_request.user.login }}
+          HEAD: ${{ github.event.pull_request.head.ref }}
+          BASE: ${{ github.event.pull_request.base.ref }}
+          ACTION: ${{ github.event.action }}
+        run: |
+          body=$(printf '🔔 @%s PR #%s %s: **%s**\n\n`%s` → `%s` by @%s\n\nCI and the Claude review are running; you will be mentioned again with the review verdict. Approve or request changes when ready.' \
+            "$OWNER" "$NUMBER" "$ACTION" "$TITLE" "$HEAD" "$BASE" "$AUTHOR")
+          gh pr comment "$NUMBER" --repo "$REPO" --body "$body"

@@ -63,7 +63,7 @@ jobs:
 
             Focus on: correctness bugs, data loss and migration safety for Hive, notification scheduling, calculation correctness, missing tests, and security. Skip pure style nits.
 
-            Post inline comments only for real problems. Then post exactly ONE top-level PR comment via `gh pr comment` titled "## Claude review — verdict" containing: Summary, Findings (severity-ranked, or "none"), Acceptance criteria check, and a final line that is exactly `Verdict: ✅ Ready for owner approval` or `Verdict: ❌ Changes requested`.
+            Post inline comments only for real problems. Then post exactly ONE top-level PR comment via `gh pr comment` titled "## Claude review — verdict" whose first line after the title is `@${{ github.repository_owner }}` (so the owner gets a GitHub Mobile notification), containing: Summary, Findings (severity-ranked, or "none"), Acceptance criteria check, and a final line that is exactly `Verdict: ✅ Ready for owner approval` or `Verdict: ❌ Changes requested`.
 
             You must NOT approve, request changes via the review API, merge, push, or modify files. The repository owner makes the final decision.
 
