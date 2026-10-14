@@ -14,13 +14,11 @@ class MaintenanceCubit extends Cubit<MaintenanceState> {
   MaintenanceCubit({
     required WatchMaintenanceByVehicle watchMaintenance,
     required AddMaintenance addMaintenance,
-    required UpdateMaintenance updateMaintenance,
     required DeleteMaintenance deleteMaintenance,
     required GetUpcomingMaintenance getUpcoming,
     required NotificationService notificationService,
   })  : _watchMaintenance = watchMaintenance,
         _addMaintenance = addMaintenance,
-        _updateMaintenance = updateMaintenance,
         _deleteMaintenance = deleteMaintenance,
         _getUpcoming = getUpcoming,
         _notificationService = notificationService,
@@ -28,7 +26,6 @@ class MaintenanceCubit extends Cubit<MaintenanceState> {
 
   final WatchMaintenanceByVehicle _watchMaintenance;
   final AddMaintenance _addMaintenance;
-  final UpdateMaintenance _updateMaintenance;
   final DeleteMaintenance _deleteMaintenance;
   final GetUpcomingMaintenance _getUpcoming;
   final NotificationService _notificationService;
@@ -38,9 +35,8 @@ class MaintenanceCubit extends Cubit<MaintenanceState> {
     emit(const MaintenanceLoading());
     _subscription?.cancel();
     _subscription = _watchMaintenance(vehicleId).listen(
-          (entries) => emit(MaintenanceLoaded(entries)),
-      onError: (Object error) =>
-          emit(MaintenanceError(error.toString())),
+      (entries) => emit(MaintenanceLoaded(entries)),
+      onError: (Object error) => emit(MaintenanceError(error.toString())),
     );
   }
 

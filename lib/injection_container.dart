@@ -62,7 +62,7 @@ Future<void> initDependencies() async {
     () => VehicleHiveDataSource(),
   );
   sl.registerLazySingleton<VehicleRepository>(
-        () => VehicleRepositoryImpl(sl<VehicleLocalDataSource>()),
+    () => VehicleRepositoryImpl(sl<VehicleLocalDataSource>()),
   );
   sl.registerLazySingleton(() => GetAllVehicles(sl<VehicleRepository>()));
   sl.registerLazySingleton(() => GetVehicleById(sl<VehicleRepository>()));
@@ -71,7 +71,7 @@ Future<void> initDependencies() async {
   sl.registerLazySingleton(() => DeleteVehicle(sl<VehicleRepository>()));
   sl.registerLazySingleton(() => WatchAllVehicles(sl<VehicleRepository>()));
   sl.registerFactory(
-        () => VehicleCubit(
+    () => VehicleCubit(
       watchAllVehicles: sl<WatchAllVehicles>(),
       addVehicle: sl<AddVehicle>(),
       updateVehicle: sl<UpdateVehicle>(),
@@ -86,15 +86,17 @@ Future<void> initDependencies() async {
     () => FuelHiveDataSource(),
   );
   sl.registerLazySingleton<FuelRepository>(
-        () => FuelRepositoryImpl(sl<FuelLocalDataSource>()),
+    () => FuelRepositoryImpl(sl<FuelLocalDataSource>()),
   );
   sl.registerLazySingleton(() => GetFuelEntriesByVehicle(sl<FuelRepository>()));
   sl.registerLazySingleton(() => GetLastFuelEntry(sl<FuelRepository>()));
   sl.registerLazySingleton(() => AddFuelEntry(sl<FuelRepository>()));
   sl.registerLazySingleton(() => UpdateFuelEntry(sl<FuelRepository>()));
   sl.registerLazySingleton(() => DeleteFuelEntry(sl<FuelRepository>()));
-  sl.registerLazySingleton(() => WatchFuelEntriesByVehicle(sl<FuelRepository>()));
-  sl.registerLazySingleton(() => GetTotalFuelCostByVehicle(sl<FuelRepository>()));
+  sl.registerLazySingleton(
+      () => WatchFuelEntriesByVehicle(sl<FuelRepository>()));
+  sl.registerLazySingleton(
+      () => GetTotalFuelCostByVehicle(sl<FuelRepository>()));
   sl.registerLazySingleton(
     () => RecalculateFuelConsumption(
       sl<FuelRepository>(),
@@ -102,7 +104,7 @@ Future<void> initDependencies() async {
     ),
   );
   sl.registerFactory(
-        () => FuelCubit(
+    () => FuelCubit(
       watchFuelEntries: sl<WatchFuelEntriesByVehicle>(),
       addFuelEntry: sl<AddFuelEntry>(),
       updateFuelEntry: sl<UpdateFuelEntry>(),
@@ -116,24 +118,28 @@ Future<void> initDependencies() async {
     () => MaintenanceHiveDataSource(),
   );
   sl.registerLazySingleton<MaintenanceRepository>(
-        () => MaintenanceRepositoryImpl(sl<MaintenanceLocalDataSource>()),
+    () => MaintenanceRepositoryImpl(sl<MaintenanceLocalDataSource>()),
   );
-  sl.registerLazySingleton(() => GetMaintenanceByVehicle(sl<MaintenanceRepository>()));
-  sl.registerLazySingleton(() => GetUpcomingMaintenance(sl<MaintenanceRepository>()));
+  sl.registerLazySingleton(
+      () => GetMaintenanceByVehicle(sl<MaintenanceRepository>()));
+  sl.registerLazySingleton(
+      () => GetUpcomingMaintenance(sl<MaintenanceRepository>()));
   sl.registerLazySingleton(() => AddMaintenance(sl<MaintenanceRepository>()));
-  sl.registerLazySingleton(() => UpdateMaintenance(sl<MaintenanceRepository>()));
-  sl.registerLazySingleton(() => DeleteMaintenance(sl<MaintenanceRepository>()));
-  sl.registerLazySingleton(() => WatchMaintenanceByVehicle(sl<MaintenanceRepository>()));
+  sl.registerLazySingleton(
+      () => UpdateMaintenance(sl<MaintenanceRepository>()));
+  sl.registerLazySingleton(
+      () => DeleteMaintenance(sl<MaintenanceRepository>()));
+  sl.registerLazySingleton(
+      () => WatchMaintenanceByVehicle(sl<MaintenanceRepository>()));
   sl.registerLazySingleton(() => RunMaintenanceReminderChecks(
-    sl<VehicleRepository>(),
-    sl<MaintenanceRepository>(),
-    sl<NotificationService>(),
-  ));
+        sl<VehicleRepository>(),
+        sl<MaintenanceRepository>(),
+        sl<NotificationService>(),
+      ));
   sl.registerFactory(
-        () => MaintenanceCubit(
+    () => MaintenanceCubit(
       watchMaintenance: sl<WatchMaintenanceByVehicle>(),
       addMaintenance: sl<AddMaintenance>(),
-      updateMaintenance: sl<UpdateMaintenance>(),
       deleteMaintenance: sl<DeleteMaintenance>(),
       getUpcoming: sl<GetUpcomingMaintenance>(),
       notificationService: sl<NotificationService>(),
@@ -172,7 +178,7 @@ Future<void> initDependencies() async {
   );
 
   sl.registerFactory(
-        () => AnalyticsCubit(
+    () => AnalyticsCubit(
       fuelRepository: sl<FuelRepository>(),
       maintenanceRepository: sl<MaintenanceRepository>(),
       vehicleRepository: sl<VehicleRepository>(),
@@ -181,7 +187,8 @@ Future<void> initDependencies() async {
   );
 
   sl.registerSingleton<PerformanceService>(PerformanceService());
-  sl.registerLazySingleton<MaintenanceService>(() => const MaintenanceService());
+  sl.registerLazySingleton<MaintenanceService>(
+      () => const MaintenanceService());
   sl.registerLazySingleton<PartsLifecycleService>(
     () => const PartsLifecycleService(),
   );
