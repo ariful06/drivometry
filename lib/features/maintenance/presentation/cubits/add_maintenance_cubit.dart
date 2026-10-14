@@ -22,6 +22,7 @@ class AddMaintenanceState {
   final DateTime? nextServiceDate;
   final Set<String> selectedParts;
   final Map<String, double> partCosts;
+
   /// Part name -> lifespan in km (for next service odometer).
   final Map<String, int> partLifespansKm;
   final PartsByCategory partsByCategory;
@@ -149,4 +150,3 @@ class AddMaintenanceCubit extends Cubit<AddMaintenanceState> {
   double get partsTotalCost =>
       state.partCosts.values.fold<double>(0, (s, v) => s + v);
 }
-

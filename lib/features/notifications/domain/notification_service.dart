@@ -12,6 +12,7 @@ abstract class NotificationService {
     required String body,
     required DateTime scheduledDate,
   });
+
   /// Schedules 8 daily reminders at 09:00 local: today and the next 7 days.
   /// Uses ids [baseId, baseId+1, ..., baseId+7].
   Future<void> scheduleOdometerDueReminders({
@@ -20,6 +21,7 @@ abstract class NotificationService {
     required String body,
   });
   Future<void> cancelNotification(int id);
+
   /// Cancels notifications with ids [baseId, baseId+1, ..., baseId+count-1].
   Future<void> cancelNotificationRange(int baseId, int count);
   Future<void> cancelAllNotifications();
@@ -52,7 +54,7 @@ class NotificationServiceImpl implements NotificationService {
 
     await _plugin
         .resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>()
+            AndroidFlutterLocalNotificationsPlugin>()
         ?.requestNotificationsPermission();
   }
 
@@ -73,7 +75,7 @@ class NotificationServiceImpl implements NotificationService {
         _details(),
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
-        UILocalNotificationDateInterpretation.absoluteTime,
+            UILocalNotificationDateInterpretation.absoluteTime,
       );
     } catch (_) {
       // Non-critical — never block the save flow
@@ -81,20 +83,20 @@ class NotificationServiceImpl implements NotificationService {
   }
 
   NotificationDetails _details() => const NotificationDetails(
-    android: AndroidNotificationDetails(
-      AppConstants.notificationChannelId,
-      AppConstants.notificationChannelName,
-      channelDescription: AppConstants.notificationChannelDesc,
-      importance: Importance.high,
-      priority: Priority.high,
-      icon: '@mipmap/ic_launcher',
-    ),
-    iOS: DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-    ),
-  );
+        android: AndroidNotificationDetails(
+          AppConstants.notificationChannelId,
+          AppConstants.notificationChannelName,
+          channelDescription: AppConstants.notificationChannelDesc,
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      );
 
   @override
   Future<void> scheduleOdometerDueReminders({

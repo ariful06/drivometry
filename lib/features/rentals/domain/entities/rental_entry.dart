@@ -30,6 +30,7 @@ class RentalEntry {
 
   final String id;
   final String vehicleId;
+
   /// Numeric string in range 1–1_000_000; prefix with `#` in UI.
   final String bookingId;
   final DateTime bookingDate;
@@ -38,6 +39,7 @@ class RentalEntry {
   final String fromLocation;
   final String toLocation;
   final String tripType;
+
   /// When [tripType] is Trip: `Single trip` or `Round trip`; otherwise empty.
   final String tripLeg;
   final DateTime startDateTime;
@@ -50,12 +52,15 @@ class RentalEntry {
   final double dueAmount;
   final String paymentStatus;
   final String fuelProvidedBy;
+
   /// `Self` or `Driver`.
   final String driverMode;
   final String? driverName;
+
   /// Driver phone (auto-filled when driver directory selection is used).
   final String? driverPhone;
   final double fuelCost;
+
   /// When true, [fuelCost] is deducted from the trip billable amount before due.
   final bool customerPaidFuelBill;
   final String? notes;

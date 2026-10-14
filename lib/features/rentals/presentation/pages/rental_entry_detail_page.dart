@@ -51,16 +51,20 @@ class RentalEntryDetailPage extends StatelessWidget {
             children: [
               Text(
                 entry.customerName,
-                style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
+                style: theme.textTheme.headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 4),
               Text(
                 entry.phone,
-                style: theme.textTheme.bodyMedium?.copyWith(color: colors.textSecondary),
+                style: theme.textTheme.bodyMedium
+                    ?.copyWith(color: colors.textSecondary),
               ),
               const SizedBox(height: 20),
               _SectionTitle(theme: theme, label: 'Booking'),
-              _DetailRow(label: 'Booking ID', value: Formatters.formatBookingId(entry.bookingId)),
+              _DetailRow(
+                  label: 'Booking ID',
+                  value: Formatters.formatBookingId(entry.bookingId)),
               _DetailRow(
                 label: 'Booking date',
                 value: Formatters.formatDate(entry.bookingDate),
@@ -125,16 +129,19 @@ class RentalEntryDetailPage extends StatelessWidget {
               const SizedBox(height: 16),
               _SectionTitle(theme: theme, label: 'Driver'),
               _DetailRow(label: 'Mode', value: entry.driverMode),
-              if (entry.driverMode == 'Driver' && (entry.driverName ?? '').trim().isNotEmpty)
+              if (entry.driverMode == 'Driver' &&
+                  (entry.driverName ?? '').trim().isNotEmpty)
                 _DetailRow(label: 'Name', value: entry.driverName!.trim()),
-              if (entry.driverMode == 'Driver' && (entry.driverPhone ?? '').trim().isNotEmpty)
+              if (entry.driverMode == 'Driver' &&
+                  (entry.driverPhone ?? '').trim().isNotEmpty)
                 _DetailRow(label: 'Phone', value: entry.driverPhone!.trim()),
               if (entry.notes != null && entry.notes!.trim().isNotEmpty) ...[
                 const SizedBox(height: 16),
                 _SectionTitle(theme: theme, label: 'Notes'),
                 Text(
                   entry.notes!.trim(),
-                  style: theme.textTheme.bodyMedium?.copyWith(color: colors.textSecondary),
+                  style: theme.textTheme.bodyMedium
+                      ?.copyWith(color: colors.textSecondary),
                 ),
               ],
             ],
@@ -190,7 +197,8 @@ class _DetailRow extends StatelessWidget {
             width: 130,
             child: Text(
               label,
-              style: theme.textTheme.bodyMedium?.copyWith(color: colors.textSecondary),
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(color: colors.textSecondary),
             ),
           ),
           Expanded(

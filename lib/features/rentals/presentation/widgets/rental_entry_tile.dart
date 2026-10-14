@@ -20,7 +20,8 @@ class RentalEntryTile extends StatelessWidget {
   }
 
   String get _driverLine {
-    if (entry.driverMode == 'Driver' && (entry.driverName ?? '').trim().isNotEmpty) {
+    if (entry.driverMode == 'Driver' &&
+        (entry.driverName ?? '').trim().isNotEmpty) {
       return 'Driver: ${entry.driverName!.trim()}';
     }
     if (entry.driverMode == 'Self') return 'Driver: Self';
@@ -80,7 +81,8 @@ class RentalEntryTile extends StatelessWidget {
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: theme.dividerColor.withValues(alpha: 0.4)),
+              border:
+                  Border.all(color: theme.dividerColor.withValues(alpha: 0.4)),
             ),
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -103,7 +105,8 @@ class RentalEntryTile extends StatelessWidget {
                             const SizedBox(height: 2),
                             Text(
                               entry.phone,
-                              style: theme.textTheme.bodySmall?.copyWith(color: colors.textSecondary),
+                              style: theme.textTheme.bodySmall
+                                  ?.copyWith(color: colors.textSecondary),
                             ),
                             const SizedBox(height: 4),
                             Text(
@@ -128,7 +131,8 @@ class RentalEntryTile extends StatelessWidget {
                   const SizedBox(height: 8),
                   Text(
                     '${Formatters.formatDate(entry.bookingDate)} · ${entry.fromLocation} → ${entry.toLocation}',
-                    style: theme.textTheme.bodySmall?.copyWith(color: colors.textSecondary),
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(color: colors.textSecondary),
                   ),
                   const SizedBox(height: 10),
                   Wrap(
@@ -178,13 +182,16 @@ class RentalEntryTile extends StatelessWidget {
                     '${_driverLine.isNotEmpty ? '$_driverLine · ' : ''}'
                     'Fuel: ${entry.fuelProvidedBy}'
                     '${entry.customerPaidFuelBill || entry.fuelProvidedBy == 'Customer' ? ' · Reduces billable' : ''}',
-                    style: theme.textTheme.bodySmall?.copyWith(color: colors.textSecondary),
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(color: colors.textSecondary),
                   ),
-                  if (entry.notes != null && entry.notes!.trim().isNotEmpty) ...[
+                  if (entry.notes != null &&
+                      entry.notes!.trim().isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Text(
                       entry.notes!,
-                      style: theme.textTheme.bodySmall?.copyWith(color: colors.textSecondary),
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: colors.textSecondary),
                     ),
                   ],
                   const SizedBox(height: 10),
@@ -195,7 +202,8 @@ class RentalEntryTile extends StatelessWidget {
                       style: IconButton.styleFrom(
                         visualDensity: VisualDensity.compact,
                       ),
-                      onPressed: () => showRentalBillingUpdateDialog(context, entry),
+                      onPressed: () =>
+                          showRentalBillingUpdateDialog(context, entry),
                       icon: const Icon(Icons.edit_note_outlined, size: 22),
                     ),
                   ),
@@ -224,7 +232,9 @@ class RentalEntryTile extends StatelessWidget {
         text: TextSpan(
           style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color),
           children: [
-            TextSpan(text: '$label: ', style: const TextStyle(fontWeight: FontWeight.w600)),
+            TextSpan(
+                text: '$label: ',
+                style: const TextStyle(fontWeight: FontWeight.w600)),
             TextSpan(text: value),
           ],
         ),

@@ -4,6 +4,7 @@ import '../entities/vehicle.dart';
 
 abstract class VehicleRepository {
   Future<List<Vehicle>> getAllVehicles();
+
   /// Alias for [getAllVehicles]. Use for startup / routing.
   Future<List<Vehicle>> getVehicles() => getAllVehicles();
   Future<Vehicle?> getVehicleById(String id);

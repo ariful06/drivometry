@@ -14,9 +14,8 @@ Future<String?> saveReceiptImage(String entryId, String sourcePath) async {
     final ext = sourcePath.contains('.')
         ? '.${sourcePath.split('.').last.toLowerCase()}'
         : '.jpg';
-    final extSanitized = ext == '.jpg' || ext == '.jpeg' || ext == '.png'
-        ? ext
-        : '.jpg';
+    final extSanitized =
+        ext == '.jpg' || ext == '.jpeg' || ext == '.png' ? ext : '.jpg';
     final destPath = '${receiptsDir.path}/$entryId$extSanitized';
     await File(sourcePath).copy(destPath);
     return destPath;

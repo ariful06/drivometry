@@ -31,7 +31,11 @@ class SectionHeader extends StatelessWidget {
 
 class StatCard extends StatelessWidget {
   const StatCard({
-    required this.label, required this.value, required this.icon, required this.color, super.key,
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+    super.key,
     this.subtitle,
   });
 
@@ -100,7 +104,10 @@ class StatCard extends StatelessWidget {
 
 class EmptyState extends StatelessWidget {
   const EmptyState({
-    required this.icon, required this.title, required this.subtitle, super.key,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    super.key,
     this.action,
   });
 
@@ -182,7 +189,8 @@ class AppDivider extends StatelessWidget {
 
 class VehicleTypeIcon extends StatelessWidget {
   const VehicleTypeIcon({
-    required this.vehicleType, super.key,
+    required this.vehicleType,
+    super.key,
     this.size = 24,
     this.color,
   });
@@ -208,7 +216,9 @@ class VehicleTypeIcon extends StatelessWidget {
 
 class InfoRow extends StatelessWidget {
   const InfoRow({
-    required this.label, required this.value, super.key,
+    required this.label,
+    required this.value,
+    super.key,
     this.valueColor,
   });
 

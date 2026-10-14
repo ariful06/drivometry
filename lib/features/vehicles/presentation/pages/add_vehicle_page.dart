@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/constants/app_constants.dart';
@@ -26,7 +27,8 @@ class AddVehiclePage extends StatefulWidget {
   State<AddVehiclePage> createState() => _AddVehiclePageState();
 }
 
-class _AddVehiclePageState extends State<AddVehiclePage> {
+class _AddVehiclePageState extends State<AddVehiclePage>
+    with WidgetsBindingObserver {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
   final _makeOtherCtrl = TextEditingController();
@@ -47,12 +49,24 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
   DateTime? _fitnessExpiry;
   late final ImagePicker _imagePicker;
 
+  /// Stable id for document filenames before the vehicle is first saved.
+  late final String _draftVehicleId;
+
+  /// The document type the user is currently capturing, used to route a
+  /// recovered photo (see [_retrieveLostData]) back to the right field when
+  /// Android destroyed and recreated this activity while the camera was open.
+  /// Persisted because in-memory state is lost when the activity is recreated.
+  String? _pendingDocType;
+  static const _prefPendingDocType = 'add_vehicle_pending_doc_type';
+
   bool get _showFitness => _selectedType != AppConstants.vehicleTypeBike;
 
   @override
   void initState() {
     super.initState();
     _imagePicker = ImagePicker();
+    _draftVehicleId = widget.vehicle?.id ?? const Uuid().v4();
+    WidgetsBinding.instance.addObserver(this);
     final v = widget.vehicle;
     if (v != null) {
       _nameCtrl.text = v.name;
@@ -72,8 +86,7 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
         _tankCapacityCtrl.text = v.tankCapacityLiters!.toStringAsFixed(0);
       }
       final col = v.color?.trim();
-      _selectedColor =
-          (col == null || col.isEmpty) ? null : col;
+      _selectedColor = (col == null || col.isEmpty) ? null : col;
       _notesCtrl.text = v.notes ?? '';
       _selectedType = v.type;
       _registrationPath = v.registrationImagePath;
@@ -84,10 +97,23 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
       final y = DateTime.now().year;
       _selectedYear = y.clamp(kVehicleYearMin, kVehicleYearMax);
     }
+    // Recover any photo that was captured while the OS killed this activity.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _retrieveLostData());
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // When returning to the app (e.g. after the camera app), check whether the
+    // picker result was lost due to the activity being recreated.
+    if (state == AppLifecycleState.resumed) {
+      _retrieveLostData();
+    }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _nameCtrl.dispose();
     _makeOtherCtrl.dispose();
     _modelCtrl.dispose();
@@ -274,8 +300,7 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
               controller: _plateCtrl,
               label: 'License Plate *',
               hint: 'e.g. DHA-1234',
-              validator: (v) =>
-              v == null || v.isEmpty ? 'Required' : null,
+              validator: (v) => v == null || v.isEmpty ? 'Required' : null,
             ),
             const SizedBox(height: 20),
             const _SectionLabel(label: 'Odometer'),
@@ -285,7 +310,7 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
               label: 'Current Odometer (km) *',
               hint: 'e.g. 15000',
               keyboardType:
-              const TextInputType.numberWithOptions(decimal: true),
+                  const TextInputType.numberWithOptions(decimal: true),
               validator: (v) {
                 if (v == null || v.isEmpty) return 'Required';
                 if (double.tryParse(v) == null) return 'Invalid number';
@@ -297,8 +322,9 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
               controller: _tankCapacityCtrl,
               label: 'Tank capacity (L)',
               hint: 'e.g. 45',
+              helper: 'Optional — used to flag fill-ups larger than the tank',
               keyboardType:
-              const TextInputType.numberWithOptions(decimal: true),
+                  const TextInputType.numberWithOptions(decimal: true),
               validator: (v) {
                 if (v == null || v.isEmpty) return null;
                 final n = double.tryParse(v);
@@ -319,14 +345,14 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
             _DocumentSection(
               label: 'Registration',
               imagePath: _registrationPath,
-              onPick: () => _pickDocument('registration', (path) => setState(() => _registrationPath = path)),
+              onPick: () => _pickDocument('registration'),
               onRemove: () => setState(() => _registrationPath = null),
             ),
             const SizedBox(height: 12),
             _DocumentSection(
               label: 'Tax token',
               imagePath: _taxTokenPath,
-              onPick: () => _pickDocument('tax_token', (path) => setState(() => _taxTokenPath = path)),
+              onPick: () => _pickDocument('tax_token'),
               onRemove: () => setState(() => _taxTokenPath = null),
             ),
             if (_showFitness) ...[
@@ -334,7 +360,7 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
               _DocumentSection(
                 label: 'Fitness certificate',
                 imagePath: _fitnessPath,
-                onPick: () => _pickDocument('fitness', (path) => setState(() => _fitnessPath = path)),
+                onPick: () => _pickDocument('fitness'),
                 onRemove: () => setState(() => _fitnessPath = null),
               ),
               const SizedBox(height: 8),
@@ -351,7 +377,8 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                     children: [
                       if (_fitnessExpiry != null)
                         TextButton(
-                          onPressed: () => setState(() => _fitnessExpiry = null),
+                          onPressed: () =>
+                              setState(() => _fitnessExpiry = null),
                           child: const Text('Clear'),
                         ),
                       IconButton(
@@ -369,13 +396,13 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
               onPressed: _isSaving ? null : _submit,
               child: _isSaving
                   ? const SizedBox(
-                height: 20,
-                width: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              )
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
                   : const Text('Save Vehicle'),
             ),
             const SizedBox(height: 32),
@@ -385,7 +412,46 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
     );
   }
 
-  Future<void> _pickDocument(String docType, void Function(String path) onPicked) async {
+  /// Routes a picked/recovered image path to the field for [docType].
+  void _applyDocPath(String docType, String path) {
+    setState(() {
+      switch (docType) {
+        case 'registration':
+          _registrationPath = path;
+          break;
+        case 'tax_token':
+          _taxTokenPath = path;
+          break;
+        case 'fitness':
+          _fitnessPath = path;
+          break;
+      }
+    });
+  }
+
+  Future<bool> _persistAndApplyDoc(String docType, XFile file) async {
+    final persisted = await persistVehicleDocumentFromPick(
+      _draftVehicleId,
+      docType,
+      file,
+    );
+    if (!mounted) return false;
+    if (persisted == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Could not save the photo. Try again or choose from gallery.',
+          ),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+      return false;
+    }
+    _applyDocPath(docType, persisted);
+    return true;
+  }
+
+  Future<void> _pickDocument(String docType) async {
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
       builder: (context) => SafeArea(
@@ -415,23 +481,40 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
       ),
     );
     if (source == null || !mounted) return;
-    await _pickDocumentFromSource(source, onPicked);
+    await _pickDocumentFromSource(source, docType);
   }
 
   Future<void> _pickDocumentFromSource(
     ImageSource source,
-    void Function(String path) onPicked,
+    String docType,
   ) async {
     await Future.delayed(const Duration(milliseconds: 150));
     if (!mounted) return;
+    // Remember the target field so we can recover the photo if Android kills
+    // and recreates this activity while the camera/gallery is in front.
+    await _setPendingDocType(docType);
     try {
       final xFile = await _imagePicker.pickImage(
         source: source,
         maxWidth: 1600,
         imageQuality: 85,
+        requestFullMetadata: false,
       );
-      if (xFile != null && mounted) onPicked(xFile.path);
+      if (!mounted) return;
+      if (xFile != null) {
+        await _persistAndApplyDoc(docType, xFile);
+      } else {
+        // Null result can mean cancel or a lost pick after activity recreation.
+        final lost = await _imagePicker.retrieveLostData();
+        if (!mounted) return;
+        final files = lost.files;
+        if (files != null && files.isNotEmpty) {
+          await _persistAndApplyDoc(docType, files.last);
+        }
+      }
+      await _setPendingDocType(null);
     } on PlatformException catch (e) {
+      await _setPendingDocType(null);
       if (!mounted) return;
       final message = e.code == 'channel-error' ||
               e.message?.contains('channel') == true
@@ -444,6 +527,7 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
         ),
       );
     } catch (e) {
+      await _setPendingDocType(null);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -454,9 +538,39 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
     }
   }
 
+  Future<void> _setPendingDocType(String? docType) async {
+    _pendingDocType = docType;
+    final prefs = await SharedPreferences.getInstance();
+    if (docType == null) {
+      await prefs.remove(_prefPendingDocType);
+    } else {
+      await prefs.setString(_prefPendingDocType, docType);
+    }
+  }
+
+  /// Recovers an image captured by the camera when Android destroyed this
+  /// activity (common on low-RAM devices and stricter recent Android versions).
+  /// Without this, `pickImage` returns null and the photo is silently lost.
+  Future<void> _retrieveLostData() async {
+    final LostDataResponse response = await _imagePicker.retrieveLostData();
+    if (response.isEmpty || !mounted) return;
+    final files = response.files;
+    if (files == null || files.isEmpty) return;
+    // Route to the field that was being captured. The in-memory value may have
+    // been wiped with the activity, so fall back to the persisted type.
+    final prefs = await SharedPreferences.getInstance();
+    final docType = _pendingDocType ??
+        prefs.getString(_prefPendingDocType) ??
+        'registration';
+    await _setPendingDocType(null);
+    if (!mounted) return;
+    await _persistAndApplyDoc(docType, files.last);
+  }
+
   Future<void> _pickFitnessExpiry() async {
     final now = DateTime.now();
-    final initial = _fitnessExpiry ?? DateTime(now.year + 1, now.month, now.day);
+    final initial =
+        _fitnessExpiry ?? DateTime(now.year + 1, now.month, now.day);
     final picked = await showDatePicker(
       context: context,
       initialDate: initial,
@@ -475,11 +589,10 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
 
     try {
       final tankStr = _tankCapacityCtrl.text.trim();
-      final tankCapacity =
-          tankStr.isEmpty ? null : double.tryParse(tankStr);
+      final tankCapacity = tankStr.isEmpty ? null : double.tryParse(tankStr);
       final existing = widget.vehicle;
       final isEdit = existing != null;
-      final vehicleId = existing?.id ?? const Uuid().v4();
+      final vehicleId = existing?.id ?? _draftVehicleId;
       final createdAt = existing?.createdAt ?? DateTime.now();
 
       String? registrationImagePath = existing?.registrationImagePath;
@@ -622,50 +735,50 @@ class _TypeSelector extends StatelessWidget {
       children: types
           .map(
             (t) => Expanded(
-          child: GestureDetector(
-            onTap: () => onChanged(t),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: selected == t
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context)
-                    .colorScheme
-                    .primary
-                    .withOpacity(0.08),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Column(
-                children: [
-                  Icon(
-                    t == AppConstants.vehicleTypeBike
-                        ? Icons.two_wheeler
-                        : t == AppConstants.vehicleTypeCar
-                        ? Icons.directions_car
-                        : Icons.commute,
+              child: GestureDetector(
+                onTap: () => onChanged(t),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
                     color: selected == t
-                        ? Colors.white
-                        : Theme.of(context).colorScheme.primary,
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    t,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: selected == t
-                          ? Colors.white
-                          : Theme.of(context).colorScheme.primary,
-                    ),
+                  child: Column(
+                    children: [
+                      Icon(
+                        t == AppConstants.vehicleTypeBike
+                            ? Icons.two_wheeler
+                            : t == AppConstants.vehicleTypeCar
+                                ? Icons.directions_car
+                                : Icons.commute,
+                        color: selected == t
+                            ? Colors.white
+                            : Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        t,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: selected == t
+                              ? Colors.white
+                              : Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
-          ),
-        ),
-      )
+          )
           .toList(),
     );
   }
@@ -680,10 +793,10 @@ class _SectionLabel extends StatelessWidget {
     return Text(
       label.toUpperCase(),
       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-        fontWeight: FontWeight.w700,
-        letterSpacing: 1.2,
-        color: Theme.of(context).colorScheme.primary,
-      ),
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.2,
+            color: Theme.of(context).colorScheme.primary,
+          ),
     );
   }
 }
@@ -693,6 +806,7 @@ class _Field extends StatelessWidget {
     required this.controller,
     required this.label,
     this.hint,
+    this.helper,
     this.keyboardType,
     this.validator,
     this.maxLines = 1,
@@ -701,6 +815,7 @@ class _Field extends StatelessWidget {
   final TextEditingController controller;
   final String label;
   final String? hint;
+  final String? helper;
   final TextInputType? keyboardType;
   final FormFieldValidator<String>? validator;
   final int maxLines;
@@ -715,6 +830,7 @@ class _Field extends StatelessWidget {
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
+        helperText: helper,
       ),
     );
   }
@@ -773,6 +889,19 @@ class _DocumentSection extends StatelessWidget {
                       height: 120,
                       width: double.infinity,
                       fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        height: 120,
+                        width: double.infinity,
+                        alignment: Alignment.center,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
+                        child: Text(
+                          'Photo unavailable — tap Add to pick again',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 8),

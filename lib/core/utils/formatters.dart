@@ -11,10 +11,8 @@ class Formatters {
   static final _fullDateTimeFormat = DateFormat('dd MMM yyyy, hh:mm a');
 
   static String formatDate(DateTime date) => _dateFormat.format(date);
-  static String formatShortDate(DateTime date) =>
-      _shortDateFormat.format(date);
-  static String formatMonthYear(DateTime date) =>
-      _monthYearFormat.format(date);
+  static String formatShortDate(DateTime date) => _shortDateFormat.format(date);
+  static String formatMonthYear(DateTime date) => _monthYearFormat.format(date);
   static String formatDateTime(DateTime date) =>
       _fullDateTimeFormat.format(date);
 
@@ -39,8 +37,7 @@ class Formatters {
     return '${value.toStringAsFixed(2)} km/L';
   }
 
-  static String formatLiters(double liters) =>
-      '${liters.toStringAsFixed(2)} L';
+  static String formatLiters(double liters) => '${liters.toStringAsFixed(2)} L';
 
   static String formatNumber(double value) =>
       NumberFormat('#,##0.##').format(value);

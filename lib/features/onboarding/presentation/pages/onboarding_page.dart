@@ -125,9 +125,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          _index == _pages.length - 1
-                              ? 'Get started'
-                              : 'Next',
+                          _index == _pages.length - 1 ? 'Get started' : 'Next',
                         ),
                         const SizedBox(width: 6),
                         const Icon(Icons.arrow_forward_rounded, size: 18),
@@ -204,4 +202,3 @@ class _OnboardingSlide extends StatelessWidget {
     );
   }
 }
-

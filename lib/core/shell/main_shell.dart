@@ -22,11 +22,10 @@ class _BottomNav extends StatelessWidget {
   const _BottomNav({required this.currentLocation});
   final String currentLocation;
 
-  /// Order: Dashboard, Rental, Analytics, Reminder
+  /// Order: Dashboard, Analytics, Reminder (Rental tab hidden)
   int get _selectedIndex {
-    if (currentLocation.startsWith('/rentals')) return 1;
-    if (currentLocation.startsWith('/analytics')) return 2;
-    if (currentLocation.startsWith('/notifications')) return 3;
+    if (currentLocation.startsWith('/analytics')) return 1;
+    if (currentLocation.startsWith('/notifications')) return 2;
     return 0;
   }
 
@@ -38,10 +37,8 @@ class _BottomNav extends StatelessWidget {
         if (index == 0) {
           context.go('/vehicles');
         } else if (index == 1) {
-          context.go('/rentals');
-        } else if (index == 2) {
           context.go('/analytics');
-        } else if (index == 3) {
+        } else if (index == 2) {
           context.go('/notifications');
         }
       },
@@ -50,11 +47,6 @@ class _BottomNav extends StatelessWidget {
           icon: Icon(Icons.dashboard_outlined),
           selectedIcon: Icon(Icons.dashboard),
           label: 'Dashboard',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.car_rental_outlined),
-          selectedIcon: Icon(Icons.car_rental),
-          label: 'Rental',
         ),
         NavigationDestination(
           icon: Icon(Icons.bar_chart_outlined),
