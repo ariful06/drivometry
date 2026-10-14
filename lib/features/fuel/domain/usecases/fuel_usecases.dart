@@ -1,7 +1,9 @@
 // lib/features/fuel/domain/usecases/fuel_usecases.dart
 
+import '../../../vehicles/domain/repositories/vehicle_repository.dart';
 import '../entities/fuel_entry.dart';
 import '../repositories/fuel_repository.dart';
+import '../services/fuel_consumption_calculator.dart';
 
 class GetFuelEntriesByVehicle {
   const GetFuelEntriesByVehicle(this._repository);
@@ -54,4 +56,28 @@ class GetTotalFuelCostByVehicle {
 
   Future<double> call(String vehicleId) =>
       _repository.getTotalFuelCostByVehicle(vehicleId);
+}
+
+/// Re-runs full-tank consumption for every fill of a vehicle and persists it.
+/// Adding, editing or deleting one fill can change the periods around it.
+class RecalculateFuelConsumption {
+  const RecalculateFuelConsumption(this._repository, this._vehicleRepository);
+  final FuelRepository _repository;
+  final VehicleRepository _vehicleRepository;
+
+  Future<void> call(String vehicleId) async {
+    final entries = await _repository.getFuelEntriesByVehicle(vehicleId);
+    final vehicle = await _vehicleRepository.getVehicleById(vehicleId);
+    final segmentsByEntryId = FuelConsumptionCalculator.segmentsByEntryId(
+      entries,
+      tankCapacityLiters: vehicle?.tankCapacityLiters,
+    );
+    final changed = <FuelEntry>[
+      for (final entry in entries)
+        if (entry.fuelEfficiency != segmentsByEntryId[entry.id]?.kmPerLiter ||
+            entry.calculatedMileage != segmentsByEntryId[entry.id]?.kmPerLiter)
+          entry.withConsumption(segmentsByEntryId[entry.id]?.kmPerLiter),
+    ];
+    await _repository.updateFuelEntries(changed);
+  }
 }

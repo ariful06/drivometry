@@ -4,6 +4,7 @@ abstract class FuelLocalDataSource {
   Future<List<FuelEntryModel>> getFuelEntriesByVehicle(String vehicleId);
   Future<FuelEntryModel?> getLastFuelEntry(String vehicleId);
   Future<void> saveFuelEntry(FuelEntryModel model);
+  Future<void> saveFuelEntries(List<FuelEntryModel> models);
   Future<void> deleteFuelEntry(String id);
   Stream<List<FuelEntryModel>> watchFuelEntriesByVehicle(String vehicleId);
   Future<double> getTotalFuelCostByVehicle(String vehicleId);

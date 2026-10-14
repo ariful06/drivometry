@@ -17,6 +17,8 @@ class MaintenanceEntryModel {
     this.notes,
     this.notificationId,
     this.odometerReminderScheduled = false,
+    this.dateProximityReminderScheduled = false,
+    this.reminderAcknowledged = false,
   });
 
   final String id;
@@ -32,6 +34,8 @@ class MaintenanceEntryModel {
   final String? notes;
   final int? notificationId;
   final bool odometerReminderScheduled;
+  final bool dateProximityReminderScheduled;
+  final bool reminderAcknowledged;
 
   factory MaintenanceEntryModel.fromMap(Map<String, dynamic> map) =>
       MaintenanceEntryModel(
@@ -51,6 +55,10 @@ class MaintenanceEntryModel {
         notificationId: map['notification_id'] as int?,
         odometerReminderScheduled:
             map['odometer_reminder_scheduled'] as bool? ?? false,
+        dateProximityReminderScheduled:
+            map['date_proximity_reminder_scheduled'] as bool? ?? false,
+        reminderAcknowledged:
+            map['reminder_acknowledged'] as bool? ?? false,
       );
 
   Map<String, dynamic> toMap() => {
@@ -67,6 +75,8 @@ class MaintenanceEntryModel {
     'notes': notes,
     'notification_id': notificationId,
     'odometer_reminder_scheduled': odometerReminderScheduled,
+    'date_proximity_reminder_scheduled': dateProximityReminderScheduled,
+    'reminder_acknowledged': reminderAcknowledged,
   };
 
   factory MaintenanceEntryModel.fromEntity(MaintenanceEntry e) =>
@@ -84,6 +94,8 @@ class MaintenanceEntryModel {
         notes: e.notes,
         notificationId: e.notificationId,
         odometerReminderScheduled: e.odometerReminderScheduled,
+        dateProximityReminderScheduled: e.dateProximityReminderScheduled,
+        reminderAcknowledged: e.reminderAcknowledged,
       );
 
   MaintenanceEntry toEntity() => MaintenanceEntry(
@@ -100,5 +112,7 @@ class MaintenanceEntryModel {
     notes: notes,
     notificationId: notificationId,
     odometerReminderScheduled: odometerReminderScheduled,
+    dateProximityReminderScheduled: dateProximityReminderScheduled,
+    reminderAcknowledged: reminderAcknowledged,
   );
 }

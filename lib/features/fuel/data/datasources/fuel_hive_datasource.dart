@@ -1,8 +1,10 @@
+import 'dart:async';
+
 import 'package:hive_flutter/hive_flutter.dart';
 
 import '../../../../core/database/hive_storage.dart';
-import 'fuel_local_datasource.dart';
 import '../models/fuel_entry_model.dart';
+import 'fuel_local_datasource.dart';
 
 class FuelHiveDataSource implements FuelLocalDataSource {
   FuelHiveDataSource() : _box = fuelEntriesBox();
@@ -12,21 +14,28 @@ class FuelHiveDataSource implements FuelLocalDataSource {
   List<FuelEntryModel> _byVehicle(String vehicleId) {
     final list = <FuelEntryModel>[];
     for (final key in _box.keys) {
-      final v = _box.get(key);
-      if (v is Map) {
-        final map = Map<String, dynamic>.from(v);
+      final storedValue = _box.get(key);
+      if (storedValue is Map) {
+        final map = Map<String, dynamic>.from(storedValue);
         if ((map['vehicle_id'] as String?) != vehicleId) continue;
         try {
           list.add(FuelEntryModel.fromMap(map));
         } catch (_) {}
       }
     }
-    list.sort((a, b) => b.date.compareTo(a.date));
+    list.sort(
+      (leftEntry, rightEntry) =>
+          rightEntry.date.compareTo(leftEntry.date),
+    );
     return list;
   }
 
   double _sumTotalCost(Iterable<FuelEntryModel> entries) {
-    return entries.fold<double>(0, (s, e) => s + e.totalCost);
+    return entries.fold<double>(
+      0,
+      (runningCostSum, fuelModel) =>
+          runningCostSum + fuelModel.totalCost,
+    );
   }
 
   @override
@@ -45,16 +54,39 @@ class FuelHiveDataSource implements FuelLocalDataSource {
   }
 
   @override
+  Future<void> saveFuelEntries(List<FuelEntryModel> models) async {
+    if (models.isEmpty) return;
+    await _box.putAll({for (final model in models) model.id: model.toMap()});
+  }
+
+  @override
   Future<void> deleteFuelEntry(String id) async {
     await _box.delete(id);
   }
 
   @override
-  Stream<List<FuelEntryModel>> watchFuelEntriesByVehicle(String vehicleId) async* {
-    yield _byVehicle(vehicleId);
-    await for (final _ in _box.watch()) {
-      yield _byVehicle(vehicleId);
-    }
+  Stream<List<FuelEntryModel>> watchFuelEntriesByVehicle(String vehicleId) {
+    // Box events arrive one per key (a batch write emits many); coalesce them
+    // so the list is rescanned and emitted once per burst.
+    StreamSubscription<BoxEvent>? boxSubscription;
+    Timer? pendingEmit;
+    late final StreamController<List<FuelEntryModel>> controller;
+    controller = StreamController<List<FuelEntryModel>>(
+      onListen: () {
+        controller.add(_byVehicle(vehicleId));
+        boxSubscription = _box.watch().listen((_) {
+          pendingEmit ??= Timer(Duration.zero, () {
+            pendingEmit = null;
+            if (!controller.isClosed) controller.add(_byVehicle(vehicleId));
+          });
+        });
+      },
+      onCancel: () async {
+        pendingEmit?.cancel();
+        await boxSubscription?.cancel();
+      },
+    );
+    return controller.stream;
   }
 
   @override
@@ -67,13 +99,16 @@ class FuelHiveDataSource implements FuelLocalDataSource {
     final toStr = to.toIso8601String();
     final list = <FuelEntryModel>[];
     for (final key in _box.keys) {
-      final v = _box.get(key);
-      if (v is Map) {
+      final storedValue = _box.get(key);
+      if (storedValue is Map) {
         try {
-          final e = FuelEntryModel.fromMap(Map<String, dynamic>.from(v));
-          final d = e.date.toIso8601String();
-          if (d.compareTo(fromStr) >= 0 && d.compareTo(toStr) <= 0) {
-            list.add(e);
+          final fuelModel = FuelEntryModel.fromMap(
+            Map<String, dynamic>.from(storedValue),
+          );
+          final entryDateIso = fuelModel.date.toIso8601String();
+          if (entryDateIso.compareTo(fromStr) >= 0 &&
+              entryDateIso.compareTo(toStr) <= 0) {
+            list.add(fuelModel);
           }
         } catch (_) {}
       }
@@ -89,9 +124,10 @@ class FuelHiveDataSource implements FuelLocalDataSource {
   ) async {
     final fromStr = from.toIso8601String();
     final toStr = to.toIso8601String();
-    final list = _byVehicle(vehicleId).where((e) {
-      final d = e.date.toIso8601String();
-      return d.compareTo(fromStr) >= 0 && d.compareTo(toStr) <= 0;
+    final list = _byVehicle(vehicleId).where((fuelModel) {
+      final entryDateIso = fuelModel.date.toIso8601String();
+      return entryDateIso.compareTo(fromStr) >= 0 &&
+          entryDateIso.compareTo(toStr) <= 0;
     });
     return _sumTotalCost(list);
   }

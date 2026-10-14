@@ -7,6 +7,8 @@ abstract class FuelRepository {
   Future<FuelEntry?> getLastFuelEntry(String vehicleId);
   Future<void> addFuelEntry(FuelEntry entry);
   Future<void> updateFuelEntry(FuelEntry entry);
+  /// Writes several entries in one batch.
+  Future<void> updateFuelEntries(List<FuelEntry> entries);
   Future<void> deleteFuelEntry(String id);
   Stream<List<FuelEntry>> watchFuelEntriesByVehicle(String vehicleId);
   Future<double> getTotalFuelCostByVehicle(String vehicleId);

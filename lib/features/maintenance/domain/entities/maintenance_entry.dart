@@ -13,6 +13,8 @@ class MaintenanceEntry {
     this.notes,
     this.notificationId,
     this.odometerReminderScheduled = false,
+    this.dateProximityReminderScheduled = false,
+    this.reminderAcknowledged = false,
   });
 
   final String id;
@@ -29,6 +31,10 @@ class MaintenanceEntry {
   final int? notificationId;
   /// True after we've scheduled the 8 daily reminders for nextServiceOdometer.
   final bool odometerReminderScheduled;
+  /// Proximity burst (same pattern as odometer) for upcoming [nextServiceDate].
+  final bool dateProximityReminderScheduled;
+  /// User marked the Reminder tab item as done (serviced); hides it from reminders.
+  final bool reminderAcknowledged;
 
   MaintenanceEntry copyWith({
     String? id,
@@ -44,6 +50,8 @@ class MaintenanceEntry {
     String? notes,
     int? notificationId,
     bool? odometerReminderScheduled,
+    bool? dateProximityReminderScheduled,
+    bool? reminderAcknowledged,
   }) => MaintenanceEntry(
     id: id ?? this.id,
     vehicleId: vehicleId ?? this.vehicleId,
@@ -59,5 +67,8 @@ class MaintenanceEntry {
     notificationId: notificationId ?? this.notificationId,
     odometerReminderScheduled:
         odometerReminderScheduled ?? this.odometerReminderScheduled,
+    dateProximityReminderScheduled: dateProximityReminderScheduled ??
+        this.dateProximityReminderScheduled,
+    reminderAcknowledged: reminderAcknowledged ?? this.reminderAcknowledged,
   );
 }

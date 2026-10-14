@@ -15,11 +15,13 @@ class FuelCubit extends Cubit<FuelState> {
     required UpdateFuelEntry updateFuelEntry,
     required DeleteFuelEntry deleteFuelEntry,
     required GetTotalFuelCostByVehicle getTotalCost,
+    required RecalculateFuelConsumption recalculateConsumption,
   })  : _watchFuelEntries = watchFuelEntries,
         _addFuelEntry = addFuelEntry,
         _updateFuelEntry = updateFuelEntry,
         _deleteFuelEntry = deleteFuelEntry,
         _getTotalCost = getTotalCost,
+        _recalculateConsumption = recalculateConsumption,
         super(const FuelInitial());
 
   final WatchFuelEntriesByVehicle _watchFuelEntries;
@@ -27,6 +29,7 @@ class FuelCubit extends Cubit<FuelState> {
   final UpdateFuelEntry _updateFuelEntry;
   final DeleteFuelEntry _deleteFuelEntry;
   final GetTotalFuelCostByVehicle _getTotalCost;
+  final RecalculateFuelConsumption _recalculateConsumption;
   StreamSubscription<List<FuelEntry>>? _subscription;
   String? _currentVehicleId;
 
@@ -39,7 +42,7 @@ class FuelCubit extends Cubit<FuelState> {
         final total = await _getTotalCost(vehicleId);
         emit(FuelLoaded(entries: entries, totalCost: total));
       },
-      onError: (Object e) => emit(FuelError(e.toString())),
+      onError: (Object error) => emit(FuelError(error.toString())),
     );
   }
 
@@ -50,11 +53,11 @@ class FuelCubit extends Cubit<FuelState> {
     required double liters,
     required double costPerLiter,
     required double prevOdometer,
+    bool isFullTank = true,
     String? notes,
   }) async {
     try {
       final distance = odometer > prevOdometer ? odometer - prevOdometer : null;
-      final efficiency = (distance != null && liters > 0) ? distance / liters : null;
       final entry = FuelEntry(
         id: const Uuid().v4(),
         vehicleId: vehicleId,
@@ -64,28 +67,34 @@ class FuelCubit extends Cubit<FuelState> {
         costPerLiter: costPerLiter,
         totalCost: liters * costPerLiter,
         notes: notes,
-        fuelEfficiency: efficiency,
         distanceDriven: distance,
+        isFullTank: isFullTank,
       );
       await _addFuelEntry(entry);
-    } catch (e) {
-      emit(FuelError(e.toString()));
+      await _recalculateConsumption(vehicleId);
+    } catch (error) {
+      emit(FuelError(error.toString()));
     }
   }
 
   Future<void> updateFuelEntry(FuelEntry entry) async {
     try {
       await _updateFuelEntry(entry);
-    } catch (e) {
-      emit(FuelError(e.toString()));
+      await _recalculateConsumption(entry.vehicleId);
+    } catch (error) {
+      emit(FuelError(error.toString()));
     }
   }
 
-  Future<void> deleteFuelEntry(String id) async {
+  Future<void> deleteFuelEntry(String id, {String? vehicleId}) async {
     try {
       await _deleteFuelEntry(id);
-    } catch (e) {
-      emit(FuelError(e.toString()));
+      final affectedVehicleId = vehicleId ?? _currentVehicleId;
+      if (affectedVehicleId != null) {
+        await _recalculateConsumption(affectedVehicleId);
+      }
+    } catch (error) {
+      emit(FuelError(error.toString()));
     }
   }
 

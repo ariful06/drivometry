@@ -3,6 +3,7 @@
 import '../../../notifications/domain/notification_service.dart';
 import '../../../vehicles/domain/repositories/vehicle_repository.dart';
 import '../entities/maintenance_entry.dart';
+import '../maintenance_notification_ids.dart';
 import '../repositories/maintenance_repository.dart';
 
 class GetMaintenanceByVehicle {
@@ -52,47 +53,93 @@ class WatchMaintenanceByVehicle {
       _repository.watchMaintenanceByVehicle(vehicleId);
 }
 
-/// Checks all vehicles' maintenance entries with nextServiceOdometer; when
-/// vehicle odometer has reached the threshold, schedules 8 reminders (1 instant
-/// + 7 daily) and marks the entry so we don't reschedule.
-class CheckOdometerDueReminders {
-  CheckOdometerDueReminders(
+/// Schedules OS notifications when maintenance is due by odometer (≤50 km left
+/// or overdue) or by calendar (within 7 days or overdue). Each case fires once
+/// per entry (until cleared via reminder-done or data changes).
+class RunMaintenanceReminderChecks {
+  RunMaintenanceReminderChecks(
     this._vehicleRepository,
     this._maintenanceRepository,
     this._notificationService,
   );
+
   final VehicleRepository _vehicleRepository;
   final MaintenanceRepository _maintenanceRepository;
   final NotificationService _notificationService;
 
+  static const int proximityKm = 50;
+  static const int proximityDays = 7;
+
   Future<void> call() async {
     try {
       final vehicles = await _vehicleRepository.getVehicles();
+      final now = DateTime.now();
+      final startOfToday = DateTime(now.year, now.month, now.day);
       for (final vehicle in vehicles) {
         final entries =
             await _maintenanceRepository.getMaintenanceByVehicle(vehicle.id);
         for (final entry in entries) {
-          if (entry.nextServiceOdometer == null ||
-              entry.odometerReminderScheduled) continue;
-          if (vehicle.currentOdometer < entry.nextServiceOdometer!) {
-            continue;
+          if (entry.reminderAcknowledged) continue;
+
+          var working = entry;
+          var changed = false;
+
+          if (!working.odometerReminderScheduled &&
+              working.nextServiceOdometer != null) {
+            final remKm = working.nextServiceOdometer! -
+                vehicle.currentOdometer.ceil();
+            if (remKm <= proximityKm) {
+              final baseId =
+                  MaintenanceNotificationIds.odometerBurstBase(working.id);
+              await _notificationService.scheduleOdometerDueReminders(
+                baseId: baseId,
+                title: 'Service coming up: ${working.title}',
+                body: remKm <= 0
+                    ? '${vehicle.name}: due at ${working.nextServiceOdometer} km — odometer has passed.'
+                    : '${vehicle.name}: about $remKm km until ${working.nextServiceOdometer} km (${working.title}).',
+              );
+              working = working.copyWith(
+                notificationId: baseId,
+                odometerReminderScheduled: true,
+              );
+              changed = true;
+            }
           }
-          final baseId = entry.id.hashCode & 0x7FFFFFFF;
-          if (baseId < 1) {
-            continue;
+
+          if (!working.dateProximityReminderScheduled &&
+              working.nextServiceDate != null) {
+            final upcomingServiceDateTime = working.nextServiceDate!;
+            final upcomingDueCalendarDay = DateTime(
+              upcomingServiceDateTime.year,
+              upcomingServiceDateTime.month,
+              upcomingServiceDateTime.day,
+            );
+            final daysUntilDue =
+                upcomingDueCalendarDay.difference(startOfToday).inDays;
+            if (daysUntilDue <= proximityDays) {
+              final baseId =
+                  MaintenanceNotificationIds.dateBurstBase(working.id);
+              late String body;
+              if (daysUntilDue < 0) {
+                body =
+                    '${vehicle.name}: "${working.title}" was due ${-daysUntilDue} day${-daysUntilDue == 1 ? '' : 's'} ago.';
+              } else if (daysUntilDue == 0) {
+                body = '${vehicle.name}: "${working.title}" is due today.';
+              } else {
+                body =
+                    '${vehicle.name}: "${working.title}" in $daysUntilDue day${daysUntilDue == 1 ? '' : 's'}.';
+              }
+              await _notificationService.scheduleOdometerDueReminders(
+                baseId: baseId,
+                title: 'Maintenance reminder: ${working.title}',
+                body: body,
+              );
+              working = working.copyWith(dateProximityReminderScheduled: true);
+              changed = true;
+            }
           }
-          await _notificationService.scheduleOdometerDueReminders(
-            baseId: baseId,
-            title: 'Service due: ${entry.title}',
-            body:
-                '${vehicle.name} has reached ${entry.nextServiceOdometer} km. Time for maintenance!',
-          );
-          await _maintenanceRepository.updateMaintenance(
-            entry.copyWith(
-              notificationId: baseId,
-              odometerReminderScheduled: true,
-            ),
-          );
+
+          if (changed) await _maintenanceRepository.updateMaintenance(working);
         }
       }
     } catch (_) {}

@@ -19,7 +19,10 @@ class RentalHiveDataSource implements RentalLocalDataSource {
         } catch (_) {}
       }
     }
-    list.sort((a, b) => b.bookingDate.compareTo(a.bookingDate));
+    list.sort(
+      (leftRental, rightRental) =>
+          rightRental.bookingDate.compareTo(leftRental.bookingDate),
+    );
     return list;
   }
 
@@ -28,7 +31,7 @@ class RentalHiveDataSource implements RentalLocalDataSource {
 
   @override
   Future<List<RentalEntryModel>> getRentalsByVehicle(String vehicleId) async =>
-      _all().where((e) => e.vehicleId == vehicleId).toList();
+      _all().where((rentalRow) => rentalRow.vehicleId == vehicleId).toList();
 
   @override
   Future<void> saveRental(RentalEntryModel model) async {

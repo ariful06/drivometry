@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../../injection_container.dart';
 import '../../../maintenance/domain/entities/maintenance_entry.dart';
+import '../../../maintenance/domain/usecases/maintenance_usecases.dart';
 import '../cubits/notifications_cubit.dart';
 
 class NotificationsPage extends StatelessWidget {
@@ -11,7 +12,15 @@ class NotificationsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => NotificationsCubit(getUpcoming: sl())..loadUpcoming(daysAhead: 60),
+      create: (_) {
+        sl<RunMaintenanceReminderChecks>()();
+        return NotificationsCubit(
+          getUpcoming: sl(),
+          getAllVehicles: sl(),
+          updateMaintenance: sl(),
+          notificationService: sl(),
+        )..loadUpcoming(daysAhead: 60);
+      },
       child: const _NotificationsView(),
     );
   }
@@ -81,20 +90,41 @@ class _UpcomingList extends StatelessWidget {
     final startOfToday = DateTime(now.year, now.month, now.day);
     final startOfNextWeek = startOfToday.add(const Duration(days: 7));
 
-    final overdue = entries.where((e) {
-      if (e.nextServiceDate == null) return false;
-      final d = DateTime(e.nextServiceDate!.year, e.nextServiceDate!.month, e.nextServiceDate!.day);
-      return d.isBefore(startOfToday);
+    final withDate = entries
+        .where((entry) => entry.nextServiceDate != null)
+        .toList();
+    final byOdometer = entries
+        .where(
+          (entry) =>
+              entry.nextServiceDate == null &&
+              entry.nextServiceOdometer != null,
+        )
+        .toList();
+
+    final overdue = withDate.where((entry) {
+      final nextDueDay = DateTime(
+        entry.nextServiceDate!.year,
+        entry.nextServiceDate!.month,
+        entry.nextServiceDate!.day,
+      );
+      return nextDueDay.isBefore(startOfToday);
     }).toList();
-    final thisWeek = entries.where((e) {
-      if (e.nextServiceDate == null) return false;
-      final d = DateTime(e.nextServiceDate!.year, e.nextServiceDate!.month, e.nextServiceDate!.day);
-      return !d.isBefore(startOfToday) && d.isBefore(startOfNextWeek);
+    final thisWeek = withDate.where((entry) {
+      final nextDueDay = DateTime(
+        entry.nextServiceDate!.year,
+        entry.nextServiceDate!.month,
+        entry.nextServiceDate!.day,
+      );
+      return !nextDueDay.isBefore(startOfToday) &&
+          nextDueDay.isBefore(startOfNextWeek);
     }).toList();
-    final later = entries.where((e) {
-      if (e.nextServiceDate == null) return false;
-      final d = DateTime(e.nextServiceDate!.year, e.nextServiceDate!.month, e.nextServiceDate!.day);
-      return !d.isBefore(startOfNextWeek);
+    final later = withDate.where((entry) {
+      final nextDueDay = DateTime(
+        entry.nextServiceDate!.year,
+        entry.nextServiceDate!.month,
+        entry.nextServiceDate!.day,
+      );
+      return !nextDueDay.isBefore(startOfNextWeek);
     }).toList();
 
     return ListView(
@@ -103,19 +133,38 @@ class _UpcomingList extends StatelessWidget {
         if (overdue.isNotEmpty) ...[
           _SectionHeader(label: 'Overdue', count: overdue.length, color: Theme.of(context).colorScheme.error),
           const SizedBox(height: 8),
-          ...overdue.map((e) => _NotificationCard(entry: e, isOverdue: true)),
+          ...overdue.map(
+                (entry) =>
+                    _NotificationCard(entry: entry, isOverdue: true),
+              ),
           const SizedBox(height: 20),
         ],
         if (thisWeek.isNotEmpty) ...[
           _SectionHeader(label: 'This Week', count: thisWeek.length, color: Colors.orange),
           const SizedBox(height: 8),
-          ...thisWeek.map((e) => _NotificationCard(entry: e)),
+          ...thisWeek.map(
+                (entry) => _NotificationCard(entry: entry),
+              ),
           const SizedBox(height: 20),
         ],
         if (later.isNotEmpty) ...[
           _SectionHeader(label: 'Upcoming', count: later.length, color: Theme.of(context).colorScheme.primary),
           const SizedBox(height: 8),
-          ...later.map((e) => _NotificationCard(entry: e)),
+          ...later.map(
+                (entry) => _NotificationCard(entry: entry),
+              ),
+          const SizedBox(height: 20),
+        ],
+        if (byOdometer.isNotEmpty) ...[
+          _SectionHeader(
+            label: 'By odometer',
+            count: byOdometer.length,
+            color: Theme.of(context).colorScheme.tertiary,
+          ),
+          const SizedBox(height: 8),
+          ...byOdometer.map(
+                (entry) => _NotificationCard(entry: entry),
+              ),
         ],
       ],
     );
@@ -155,27 +204,34 @@ class _NotificationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nextDate = entry.nextServiceDate!;
+    final nextDate = entry.nextServiceDate;
     final now = DateTime.now();
     final startOfToday = DateTime(now.year, now.month, now.day);
-    final nextDateOnly = DateTime(nextDate.year, nextDate.month, nextDate.day);
-    final diff = nextDateOnly.difference(startOfToday).inDays;
 
     final String dueLabel;
     final Color dueColor;
-    if (isOverdue) {
-      final daysOverdue = startOfToday.difference(nextDateOnly).inDays;
-      dueLabel = 'Overdue by $daysOverdue day${daysOverdue == 1 ? "" : "s"}';
-      dueColor = Theme.of(context).colorScheme.error;
-    } else if (diff == 0) {
-      dueLabel = 'Due today';
-      dueColor = Colors.orange;
-    } else if (diff == 1) {
-      dueLabel = 'Due tomorrow';
-      dueColor = Colors.orange;
+    if (nextDate != null) {
+      final nextDateOnly =
+          DateTime(nextDate.year, nextDate.month, nextDate.day);
+      final diff = nextDateOnly.difference(startOfToday).inDays;
+      if (isOverdue) {
+        final daysOverdue = startOfToday.difference(nextDateOnly).inDays;
+        dueLabel =
+            'Overdue by $daysOverdue day${daysOverdue == 1 ? "" : "s"}';
+        dueColor = Theme.of(context).colorScheme.error;
+      } else if (diff == 0) {
+        dueLabel = 'Due today';
+        dueColor = Colors.orange;
+      } else if (diff == 1) {
+        dueLabel = 'Due tomorrow';
+        dueColor = Colors.orange;
+      } else {
+        dueLabel = 'Due in $diff days';
+        dueColor = Theme.of(context).colorScheme.primary;
+      }
     } else {
-      dueLabel = 'Due in $diff days';
-      dueColor = Theme.of(context).colorScheme.primary;
+      dueLabel = 'Track by odometer';
+      dueColor = Theme.of(context).colorScheme.tertiary;
     }
 
     return Card(
@@ -204,12 +260,16 @@ class _NotificationCard extends StatelessWidget {
                           color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
                       maxLines: 2, overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 6),
-                  Row(children: [
-                    Icon(Icons.calendar_today_outlined, size: 12, color: dueColor),
-                    const SizedBox(width: 4),
-                    Text('${DateFormat("dd MMM yyyy").format(nextDate)}  •  $dueLabel',
+                  if (nextDate != null)
+                    Row(children: [
+                      Icon(Icons.calendar_today_outlined, size: 12, color: dueColor),
+                      const SizedBox(width: 4),
+                      Text('${DateFormat("dd MMM yyyy").format(nextDate)}  •  $dueLabel',
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: dueColor)),
+                    ])
+                  else
+                    Text(dueLabel,
                         style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: dueColor)),
-                  ]),
                   if (entry.nextServiceOdometer != null) ...[
                     const SizedBox(height: 4),
                     Row(children: [
@@ -221,6 +281,24 @@ class _NotificationCard extends StatelessWidget {
                     ]),
                   ],
                 ],
+              ),
+            ),
+            Tooltip(
+              message: 'Mark serviced — removes from reminders',
+              child: Checkbox(
+                value: entry.reminderAcknowledged,
+                onChanged: (v) async {
+                  if (v != true) return;
+                  try {
+                    await context.read<NotificationsCubit>().markReminderDone(entry);
+                  } catch (_) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Could not update reminder')),
+                      );
+                    }
+                  }
+                },
               ),
             ),
           ],

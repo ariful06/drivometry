@@ -166,8 +166,7 @@ class _AddMaintenancePageState extends State<AddMaintenancePage> {
                             .setNextServiceDate(null)
                         : null,
                   ),
-                  if (state.type != 'parts' ||
-                      state.partLifespansKm.isEmpty) ...[
+                  if (state.partLifespansKm.isEmpty) ...[
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _nextOdometerCtrl,
@@ -179,8 +178,7 @@ class _AddMaintenancePageState extends State<AddMaintenancePage> {
                       ),
                     ),
                   ],
-                  if (state.type == 'parts' &&
-                      state.partLifespansKm.isNotEmpty) ...[
+                  if (state.partLifespansKm.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Text(
                       'Next service odometer will be calculated from current odometer + part lifespan(s).',
@@ -300,11 +298,14 @@ class _AddMaintenancePageState extends State<AddMaintenancePage> {
 
       final currentOdo = double.parse(_odometerCtrl.text.trim()).round();
       int? nextServiceOdometer;
-      if (state.type == 'parts' &&
-          state.partLifespansKm.isNotEmpty &&
+      if (state.partLifespansKm.isNotEmpty &&
           state.selectedParts.isNotEmpty) {
-        final minLifespan =
-            state.partLifespansKm.values.reduce((a, b) => a < b ? a : b);
+        final minLifespan = state.partLifespansKm.values.reduce(
+          (minimumKmSoFar, lifespanKmForPart) =>
+              lifespanKmForPart < minimumKmSoFar
+                  ? lifespanKmForPart
+                  : minimumKmSoFar,
+        );
         nextServiceOdometer = currentOdo + minLifespan;
       } else if (_nextOdometerCtrl.text.trim().isNotEmpty) {
         nextServiceOdometer = int.tryParse(_nextOdometerCtrl.text.trim());
@@ -558,7 +559,7 @@ class _PartChip extends StatelessWidget {
               if (selected && lifespanKm != null) ...[
                 const SizedBox(width: 6),
                 Text(
-                  '· ${lifespanKm!}k km',
+                  '· ${lifespanKm!} km',
                   style: theme.textTheme.bodySmall?.copyWith(
                     fontWeight: FontWeight.w500,
                     color: Colors.white.withOpacity(0.9),
@@ -589,6 +590,7 @@ class _LifespanDialogState extends State<_LifespanDialog> {
   @override
   void initState() {
     super.initState();
+    _ctrl.addListener(() => setState(() {}));
   }
 
   @override
@@ -632,7 +634,9 @@ class _LifespanDialogState extends State<_LifespanDialog> {
         ),
         FilledButton(
           onPressed: _submit,
-          child: const Text('Add part'),
+          child: Text(
+            _ctrl.text.trim().isEmpty ? 'Skip' : 'Add part',
+          ),
         ),
       ],
     );

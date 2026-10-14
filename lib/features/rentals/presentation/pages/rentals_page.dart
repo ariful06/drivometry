@@ -70,7 +70,8 @@ class _RentalList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
-    final paidCount = entries.where((e) => e.paymentStatus == 'Paid').length;
+    final paidCount =
+        entries.where((rental) => rental.paymentStatus == 'Paid').length;
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(

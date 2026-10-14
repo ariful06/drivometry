@@ -28,7 +28,7 @@ class VehicleCubit extends Cubit<VehicleState> {
     emit(const VehicleLoading());
     _subscription = _watchAllVehicles().listen(
           (vehicles) => emit(VehicleLoaded(vehicles)),
-      onError: (Object e) => emit(VehicleError(e.toString())),
+      onError: (Object error) => emit(VehicleError(error.toString())),
     );
   }
 
@@ -60,24 +60,24 @@ class VehicleCubit extends Cubit<VehicleState> {
         isRental: false,
       );
       await _addVehicle(vehicle);
-    } catch (e) {
-      emit(VehicleError(e.toString()));
+    } catch (error) {
+      emit(VehicleError(error.toString()));
     }
   }
 
   Future<void> updateVehicle(Vehicle vehicle) async {
     try {
       await _updateVehicle(vehicle);
-    } catch (e) {
-      emit(VehicleError(e.toString()));
+    } catch (error) {
+      emit(VehicleError(error.toString()));
     }
   }
 
   Future<void> deleteVehicle(String id) async {
     try {
       await _deleteVehicle(id);
-    } catch (e) {
-      emit(VehicleError(e.toString()));
+    } catch (error) {
+      emit(VehicleError(error.toString()));
     }
   }
 

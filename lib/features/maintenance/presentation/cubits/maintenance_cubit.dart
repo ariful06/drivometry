@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../notifications/domain/notification_service.dart';
 import '../../domain/entities/maintenance_entry.dart';
+import '../../domain/maintenance_notification_ids.dart';
 import '../../domain/usecases/maintenance_usecases.dart';
 
 part 'maintenance_state.dart';
@@ -38,7 +39,8 @@ class MaintenanceCubit extends Cubit<MaintenanceState> {
     _subscription?.cancel();
     _subscription = _watchMaintenance(vehicleId).listen(
           (entries) => emit(MaintenanceLoaded(entries)),
-      onError: (Object e) => emit(MaintenanceError(e.toString())),
+      onError: (Object error) =>
+          emit(MaintenanceError(error.toString())),
     );
   }
 
@@ -83,8 +85,8 @@ class MaintenanceCubit extends Cubit<MaintenanceState> {
         notificationId: notificationId,
       );
       await _addMaintenance(entry);
-    } catch (e) {
-      emit(MaintenanceError(e.toString()));
+    } catch (error) {
+      emit(MaintenanceError(error.toString()));
     }
   }
 
@@ -92,21 +94,26 @@ class MaintenanceCubit extends Cubit<MaintenanceState> {
     String id, {
     int? notificationId,
     bool odometerReminderScheduled = false,
+    bool dateProximityReminderScheduled = false,
   }) async {
     try {
-      if (notificationId != null) {
-        if (odometerReminderScheduled) {
-          await _notificationService.cancelNotificationRange(
-            notificationId,
-            8,
-          );
-        } else {
-          await _notificationService.cancelNotification(notificationId);
-        }
+      if (odometerReminderScheduled && notificationId != null) {
+        await _notificationService.cancelNotificationRange(
+          notificationId,
+          8,
+        );
+      } else if (notificationId != null) {
+        await _notificationService.cancelNotification(notificationId);
+      }
+      if (dateProximityReminderScheduled) {
+        await _notificationService.cancelNotificationRange(
+          MaintenanceNotificationIds.dateBurstBase(id),
+          8,
+        );
       }
       await _deleteMaintenance(id);
-    } catch (e) {
-      emit(MaintenanceError(e.toString()));
+    } catch (error) {
+      emit(MaintenanceError(error.toString()));
     }
   }
 
