@@ -26,6 +26,7 @@ Future<void> initHive() async {
 /// Provides access to Hive boxes. Use after [initHive].
 Box<dynamic> vehiclesBox() => Hive.box<dynamic>(kVehiclesBox);
 Box<dynamic> fuelEntriesBox() => Hive.box<dynamic>(kFuelEntriesBox);
-Box<dynamic> maintenanceEntriesBox() => Hive.box<dynamic>(kMaintenanceEntriesBox);
+Box<dynamic> maintenanceEntriesBox() =>
+    Hive.box<dynamic>(kMaintenanceEntriesBox);
 Box<dynamic> partReplacementsBox() => Hive.box<dynamic>(kPartReplacementsBox);
 Box<dynamic> rentalEntriesBox() => Hive.box<dynamic>(kRentalEntriesBox);

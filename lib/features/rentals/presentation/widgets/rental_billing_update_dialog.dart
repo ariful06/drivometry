@@ -41,7 +41,8 @@ class _RentalTripBillingSheet extends StatefulWidget {
   final ScaffoldMessengerState scaffoldMessenger;
 
   @override
-  State<_RentalTripBillingSheet> createState() => _RentalTripBillingSheetState();
+  State<_RentalTripBillingSheet> createState() =>
+      _RentalTripBillingSheetState();
 }
 
 class _RentalTripBillingSheetState extends State<_RentalTripBillingSheet> {
@@ -61,7 +62,8 @@ class _RentalTripBillingSheetState extends State<_RentalTripBillingSheet> {
   void initState() {
     super.initState();
     _fareCtrl = TextEditingController(text: _entry.rentFareAmount.toString());
-    _distanceCtrl = TextEditingController(text: _entry.totalKm.toStringAsFixed(1));
+    _distanceCtrl =
+        TextEditingController(text: _entry.totalKm.toStringAsFixed(1));
     _partialPaymentCtrl = TextEditingController();
     _paymentStatus = _entry.paymentStatus;
     if (!_paymentOptions.contains(_paymentStatus)) {
@@ -69,8 +71,9 @@ class _RentalTripBillingSheetState extends State<_RentalTripBillingSheet> {
     }
     final now = DateTime.now();
     final tripEndIsInFuture = now.isBefore(_entry.endDateTime);
-    _tripCompletionChoice =
-        tripEndIsInFuture ? _TripCompletionChoice.ongoing : _TripCompletionChoice.finished;
+    _tripCompletionChoice = tripEndIsInFuture
+        ? _TripCompletionChoice.ongoing
+        : _TripCompletionChoice.finished;
   }
 
   @override
@@ -121,7 +124,8 @@ class _RentalTripBillingSheetState extends State<_RentalTripBillingSheet> {
   bool get _markTripCompletedOnSave {
     final now = DateTime.now();
     final tripEndIsInFuture = now.isBefore(_entry.endDateTime);
-    return tripEndIsInFuture && _tripCompletionChoice == _TripCompletionChoice.finished;
+    return tripEndIsInFuture &&
+        _tripCompletionChoice == _TripCompletionChoice.finished;
   }
 
   Future<void> _submit() async {
@@ -139,7 +143,8 @@ class _RentalTripBillingSheetState extends State<_RentalTripBillingSheet> {
             rentFareAmount: _fare,
             tripDistanceKm: _distanceKm,
             paymentStatusSelection: _paymentStatus,
-            partialPaymentAmount: _paymentStatus == 'Partial' ? _partialPaymentEntered : 0,
+            partialPaymentAmount:
+                _paymentStatus == 'Partial' ? _partialPaymentEntered : 0,
             markTripCompleted: _markTripCompletedOnSave,
           );
       if (!mounted) return;
@@ -182,10 +187,12 @@ class _RentalTripBillingSheetState extends State<_RentalTripBillingSheet> {
             maxChildSize: 1.0,
             snap: true,
             snapSizes: const [0.58, 1.0],
-            builder: (BuildContext sheetContext, ScrollController scrollController) {
+            builder:
+                (BuildContext sheetContext, ScrollController scrollController) {
               return Material(
                 color: colors.cardBackground,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(20)),
                 clipBehavior: Clip.antiAlias,
                 child: Column(
                   children: [
@@ -229,7 +236,9 @@ class _RentalTripBillingSheetState extends State<_RentalTripBillingSheet> {
                           ),
                           IconButton(
                             visualDensity: VisualDensity.compact,
-                            onPressed: _submitting ? null : () => Navigator.of(sheetContext).pop(),
+                            onPressed: _submitting
+                                ? null
+                                : () => Navigator.of(sheetContext).pop(),
                             icon: const Icon(Icons.close_rounded),
                             tooltip: 'Close',
                           ),
@@ -247,11 +256,13 @@ class _RentalTripBillingSheetState extends State<_RentalTripBillingSheet> {
                               child: Form(
                                 key: _formKey,
                                 child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
                                   children: [
                                     Text(
                                       'Rental status',
-                                      style: theme.textTheme.titleSmall?.copyWith(
+                                      style:
+                                          theme.textTheme.titleSmall?.copyWith(
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),
@@ -260,14 +271,18 @@ class _RentalTripBillingSheetState extends State<_RentalTripBillingSheet> {
                                       SegmentedButton<_TripCompletionChoice>(
                                         segments: const [
                                           ButtonSegment(
-                                            value: _TripCompletionChoice.ongoing,
+                                            value:
+                                                _TripCompletionChoice.ongoing,
                                             label: Text('Ongoing'),
-                                            icon: Icon(Icons.schedule_outlined, size: 18),
+                                            icon: Icon(Icons.schedule_outlined,
+                                                size: 18),
                                           ),
                                           ButtonSegment(
-                                            value: _TripCompletionChoice.finished,
+                                            value:
+                                                _TripCompletionChoice.finished,
                                             label: Text('Completed'),
-                                            icon: Icon(Icons.flag_outlined, size: 18),
+                                            icon: Icon(Icons.flag_outlined,
+                                                size: 18),
                                           ),
                                         ],
                                         selected: {_tripCompletionChoice},
@@ -275,26 +290,31 @@ class _RentalTripBillingSheetState extends State<_RentalTripBillingSheet> {
                                         showSelectedIcon: false,
                                         onSelectionChanged: _submitting
                                             ? null
-                                            : (Set<_TripCompletionChoice> selected) {
+                                            : (Set<_TripCompletionChoice>
+                                                selected) {
                                                 setState(() {
-                                                  _tripCompletionChoice = selected.first;
+                                                  _tripCompletionChoice =
+                                                      selected.first;
                                                 });
                                               },
                                       )
                                     else
                                       _ReadOnlyFieldCard(
                                         label: 'Trip',
-                                        value: 'Completed (end time already passed)',
+                                        value:
+                                            'Completed (end time already passed)',
                                         valueColor: colors.textSecondary,
                                         icon: Icons.flag_outlined,
                                       ),
                                     if (tripEndIsInFuture &&
-                                        _tripCompletionChoice == _TripCompletionChoice.finished)
+                                        _tripCompletionChoice ==
+                                            _TripCompletionChoice.finished)
                                       Padding(
                                         padding: const EdgeInsets.only(top: 8),
                                         child: Text(
                                           'On save, end time will be set to now.',
-                                          style: theme.textTheme.bodySmall?.copyWith(
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
                                             color: theme.colorScheme.primary,
                                           ),
                                         ),
@@ -302,30 +322,37 @@ class _RentalTripBillingSheetState extends State<_RentalTripBillingSheet> {
                                     const SizedBox(height: 20),
                                     TextFormField(
                                       controller: _fareCtrl,
-                                      keyboardType: const TextInputType.numberWithOptions(
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
                                         decimal: true,
                                       ),
                                       decoration: const InputDecoration(
                                         labelText: 'Fare rate',
-                                        prefixIcon: Icon(Icons.payments_outlined),
+                                        prefixIcon:
+                                            Icon(Icons.payments_outlined),
                                       ),
                                       validator: (String? rawText) {
-                                        if (rawText == null || rawText.trim().isEmpty) {
+                                        if (rawText == null ||
+                                            rawText.trim().isEmpty) {
                                           return 'Required';
                                         }
-                                        final parsedFare = double.tryParse(rawText);
-                                        if (parsedFare == null || parsedFare < 0) {
+                                        final parsedFare =
+                                            double.tryParse(rawText);
+                                        if (parsedFare == null ||
+                                            parsedFare < 0) {
                                           return 'Invalid';
                                         }
                                         return null;
                                       },
-                                      onChanged: (String? newText) => setState(() {}),
+                                      onChanged: (String? newText) =>
+                                          setState(() {}),
                                     ),
                                     const SizedBox(height: 12),
                                     _ReadOnlyFieldCard(
                                       label: 'Advance received (to date)',
                                       value: hasExistingAdvance
-                                          ? Formatters.formatCurrency(existingAdvance)
+                                          ? Formatters.formatCurrency(
+                                              existingAdvance)
                                           : 'None yet',
                                       valueColor: hasExistingAdvance
                                           ? colors.success
@@ -338,11 +365,13 @@ class _RentalTripBillingSheetState extends State<_RentalTripBillingSheet> {
                                       value: _paymentStatus,
                                       decoration: const InputDecoration(
                                         labelText: 'Payment status',
-                                        prefixIcon: Icon(Icons.account_balance_wallet_outlined),
+                                        prefixIcon: Icon(Icons
+                                            .account_balance_wallet_outlined),
                                       ),
                                       items: _paymentOptions
                                           .map(
-                                            (String option) => DropdownMenuItem<String>(
+                                            (String option) =>
+                                                DropdownMenuItem<String>(
                                               value: option,
                                               child: Text(option),
                                             ),
@@ -352,7 +381,8 @@ class _RentalTripBillingSheetState extends State<_RentalTripBillingSheet> {
                                           ? null
                                           : (String? selected) {
                                               if (selected == null) return;
-                                              setState(() => _paymentStatus = selected);
+                                              setState(() =>
+                                                  _paymentStatus = selected);
                                             },
                                     ),
                                     if (_paymentStatus == 'Paid') ...[
@@ -368,7 +398,8 @@ class _RentalTripBillingSheetState extends State<_RentalTripBillingSheet> {
                                       const SizedBox(height: 12),
                                       TextFormField(
                                         controller: _partialPaymentCtrl,
-                                        keyboardType: const TextInputType.numberWithOptions(
+                                        keyboardType: const TextInputType
+                                            .numberWithOptions(
                                           decimal: true,
                                         ),
                                         decoration: InputDecoration(
@@ -377,50 +408,66 @@ class _RentalTripBillingSheetState extends State<_RentalTripBillingSheet> {
                                           helperText:
                                               'Added to advance. Remaining stays tied to billable fare '
                                               '(${Formatters.formatCurrency(_billablePreview)}).',
-                                          prefixIcon: const Icon(Icons.point_of_sale_outlined),
+                                          prefixIcon: const Icon(
+                                              Icons.point_of_sale_outlined),
                                         ),
                                         validator: (String? rawText) {
-                                          if (rawText == null || rawText.trim().isEmpty) {
+                                          if (rawText == null ||
+                                              rawText.trim().isEmpty) {
                                             return null;
                                           }
-                                          final parsedPayment = double.tryParse(rawText);
-                                          if (parsedPayment == null || parsedPayment < 0) {
+                                          final parsedPayment =
+                                              double.tryParse(rawText);
+                                          if (parsedPayment == null ||
+                                              parsedPayment < 0) {
                                             return 'Invalid';
                                           }
                                           return null;
                                         },
-                                        onChanged: (String? newText) => setState(() {}),
+                                        onChanged: (String? newText) =>
+                                            setState(() {}),
                                       ),
                                     ],
                                     const SizedBox(height: 12),
                                     TextFormField(
                                       controller: _distanceCtrl,
-                                      keyboardType: const TextInputType.numberWithOptions(
+                                      keyboardType:
+                                          const TextInputType.numberWithOptions(
                                         decimal: true,
                                       ),
                                       decoration: const InputDecoration(
                                         labelText: 'Trip distance (km)',
-                                        prefixIcon: Icon(Icons.straighten_outlined),
-                                        helperText: 'End odometer = start KM + distance.',
+                                        prefixIcon:
+                                            Icon(Icons.straighten_outlined),
+                                        helperText:
+                                            'End odometer = start KM + distance.',
                                       ),
                                       validator: (String? rawText) {
-                                        if (rawText == null || rawText.trim().isEmpty) {
+                                        if (rawText == null ||
+                                            rawText.trim().isEmpty) {
                                           return 'Required';
                                         }
-                                        final parsedDistanceKm = double.tryParse(rawText);
-                                        if (parsedDistanceKm == null || parsedDistanceKm < 0) {
+                                        final parsedDistanceKm =
+                                            double.tryParse(rawText);
+                                        if (parsedDistanceKm == null ||
+                                            parsedDistanceKm < 0) {
                                           return 'Invalid';
                                         }
                                         return null;
                                       },
-                                      onChanged: (String? newText) => setState(() {}),
+                                      onChanged: (String? newText) =>
+                                          setState(() {}),
                                     ),
                                     const SizedBox(height: 16),
                                     DecoratedBox(
                                       decoration: BoxDecoration(
-                                        color: theme.colorScheme.surfaceContainerHighest
+                                        color: theme
+                                            .colorScheme.surfaceContainerHighest
                                             .withValues(
-                                          alpha: theme.brightness == Brightness.dark ? 0.35 : 0.65,
+                                          alpha: theme.brightness ==
+                                                  Brightness.dark
+                                              ? 0.35
+                                              : 0.65,
                                         ),
                                         borderRadius: BorderRadius.circular(14),
                                       ),
@@ -430,59 +477,78 @@ class _RentalTripBillingSheetState extends State<_RentalTripBillingSheet> {
                                           vertical: 12,
                                         ),
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.stretch,
                                           children: [
                                             Text(
                                               'Summary',
-                                              style: theme.textTheme.labelLarge?.copyWith(
+                                              style: theme.textTheme.labelLarge
+                                                  ?.copyWith(
                                                 fontWeight: FontWeight.w700,
-                                                color: theme.colorScheme.primary,
+                                                color:
+                                                    theme.colorScheme.primary,
                                               ),
                                             ),
                                             const SizedBox(height: 10),
-                                            if (_entry.customerPaidFuelBill && _entry.fuelCost > 0)
+                                            if (_entry.customerPaidFuelBill &&
+                                                _entry.fuelCost > 0)
                                               _SettlementLine(
-                                                label: 'Fuel credited (customer paid)',
+                                                label:
+                                                    'Fuel credited (customer paid)',
                                                 value:
                                                     '- ${Formatters.formatCurrency(_entry.fuelCost)}',
-                                                valueColor: colors.textSecondary,
+                                                valueColor:
+                                                    colors.textSecondary,
                                               ),
                                             _SettlementLine(
                                               label: 'Billable trip',
-                                              value: Formatters.formatCurrency(_billablePreview),
-                                              valueColor: theme.colorScheme.onSurface,
+                                              value: Formatters.formatCurrency(
+                                                  _billablePreview),
+                                              valueColor:
+                                                  theme.colorScheme.onSurface,
                                             ),
                                             _SettlementLine(
                                               label: 'Payment status',
                                               value: _paymentStatus,
-                                              valueColor: theme.colorScheme.primary,
+                                              valueColor:
+                                                  theme.colorScheme.primary,
                                             ),
                                             const SizedBox(height: 6),
                                             _SettlementLine(
-                                              label: 'Total advance (after save)',
-                                              value: Formatters.formatCurrency(_advanceAfterSave),
+                                              label:
+                                                  'Total advance (after save)',
+                                              value: Formatters.formatCurrency(
+                                                  _advanceAfterSave),
                                               valueColor: colors.success,
                                             ),
                                             const SizedBox(height: 10),
                                             Divider(
                                               height: 1,
-                                              color: colors.divider.withValues(alpha: 0.8),
+                                              color: colors.divider
+                                                  .withValues(alpha: 0.8),
                                             ),
                                             const SizedBox(height: 10),
                                             Row(
-                                              crossAxisAlignment: CrossAxisAlignment.end,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.end,
                                               children: [
                                                 Expanded(
                                                   child: Text(
                                                     'Remaining due',
-                                                    style: theme.textTheme.titleSmall?.copyWith(
-                                                      fontWeight: FontWeight.w700,
+                                                    style: theme
+                                                        .textTheme.titleSmall
+                                                        ?.copyWith(
+                                                      fontWeight:
+                                                          FontWeight.w700,
                                                     ),
                                                   ),
                                                 ),
                                                 Text(
-                                                  Formatters.formatCurrency(_duePreview),
-                                                  style: theme.textTheme.titleMedium?.copyWith(
+                                                  Formatters.formatCurrency(
+                                                      _duePreview),
+                                                  style: theme
+                                                      .textTheme.titleMedium
+                                                      ?.copyWith(
                                                     fontWeight: FontWeight.w800,
                                                     color: remainingColor,
                                                   ),
@@ -502,7 +568,9 @@ class _RentalTripBillingSheetState extends State<_RentalTripBillingSheet> {
                         ],
                       ),
                     ),
-                    Divider(height: 1, color: colors.divider.withValues(alpha: 0.7)),
+                    Divider(
+                        height: 1,
+                        color: colors.divider.withValues(alpha: 0.7)),
                     SafeArea(
                       top: false,
                       child: Padding(
@@ -510,8 +578,9 @@ class _RentalTripBillingSheetState extends State<_RentalTripBillingSheet> {
                         child: Row(
                           children: [
                             TextButton(
-                              onPressed:
-                                  _submitting ? null : () => Navigator.of(sheetContext).pop(),
+                              onPressed: _submitting
+                                  ? null
+                                  : () => Navigator.of(sheetContext).pop(),
                               child: const Text('Cancel'),
                             ),
                             const Spacer(),
@@ -527,7 +596,8 @@ class _RentalTripBillingSheetState extends State<_RentalTripBillingSheet> {
                                       ),
                                     )
                                   : const Icon(Icons.check_rounded, size: 20),
-                              label: Text(_submitting ? 'Saving…' : 'Save changes'),
+                              label: Text(
+                                  _submitting ? 'Saving…' : 'Save changes'),
                             ),
                           ],
                         ),

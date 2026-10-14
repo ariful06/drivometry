@@ -8,7 +8,8 @@ import 'vehicle_dashboard_tabs_page.dart';
 /// Wrapper that resolves [Vehicle] by id when not passed as [extra] (e.g. from startup).
 class VehicleDashboardPage extends StatelessWidget {
   const VehicleDashboardPage({
-    required this.vehicleId, super.key,
+    required this.vehicleId,
+    super.key,
     this.vehicle,
   });
   final String vehicleId;

@@ -33,7 +33,8 @@ class RentalRepositoryImpl implements RentalRepository {
   Future<void> deleteRental(String id) => _dataSource.deleteRental(id);
 
   @override
-  Stream<List<RentalEntry>> watchAllRentals() => _dataSource.watchAllRentals().map(
-        (models) => models.map((m) => m.toEntity()).toList(),
-      );
+  Stream<List<RentalEntry>> watchAllRentals() =>
+      _dataSource.watchAllRentals().map(
+            (models) => models.map((m) => m.toEntity()).toList(),
+          );
 }

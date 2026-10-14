@@ -63,7 +63,6 @@ const PartsByCategory CarParts = {
     'Exhaust manifold',
     'Throttle body',
   ],
-
   'Cooling System': [
     'Radiator',
     'Radiator fan',
@@ -75,7 +74,6 @@ const PartsByCategory CarParts = {
     'Radiator hose',
     'Heater core',
   ],
-
   'Fuel System': [
     'Fuel pump',
     'Fuel injector',
@@ -84,7 +82,6 @@ const PartsByCategory CarParts = {
     'Fuel rail',
     'Throttle cable',
   ],
-
   'Transmission': [
     'Transmission oil',
     'Clutch plate',
@@ -97,7 +94,6 @@ const PartsByCategory CarParts = {
     'CV joint',
     'Differential',
   ],
-
   'Brake System': [
     'Brake pads',
     'Brake shoes',
@@ -111,7 +107,6 @@ const PartsByCategory CarParts = {
     'ABS module',
     'Brake lines',
   ],
-
   'Suspension': [
     'Shock absorber',
     'Strut',
@@ -123,7 +118,6 @@ const PartsByCategory CarParts = {
     'Stabilizer link',
     'Bushing',
   ],
-
   'Steering System': [
     'Steering rack',
     'Tie rod',
@@ -133,7 +127,6 @@ const PartsByCategory CarParts = {
     'Power steering fluid',
     'Steering knuckle',
   ],
-
   'Electrical': [
     'Battery',
     'Alternator',
@@ -145,7 +138,6 @@ const PartsByCategory CarParts = {
     'Sensors',
     'Ignition switch',
   ],
-
   'Body & Exterior': [
     'Headlight',
     'Tail light',
@@ -159,7 +151,6 @@ const PartsByCategory CarParts = {
     'Bumper',
     'Grille',
   ],
-
   'Interior': [
     'Dashboard',
     'Instrument cluster',
@@ -170,7 +161,6 @@ const PartsByCategory CarParts = {
     'Center console',
     'Interior lights',
   ],
-
   'AC System': [
     'AC compressor',
     'AC condenser',
@@ -180,7 +170,6 @@ const PartsByCategory CarParts = {
     'Expansion valve',
     'AC refrigerant',
   ],
-
   'Wheels & Tires': [
     'Tire',
     'Wheel rim',
@@ -206,7 +195,6 @@ const PartsByCategory MotorcycleParts = {
     'Valve',
     'Timing chain',
   ],
-
   'Fuel System': [
     'Fuel tank',
     'Fuel pump',
@@ -215,21 +203,18 @@ const PartsByCategory MotorcycleParts = {
     'Fuel filter',
     'Throttle body',
   ],
-
   'Transmission': [
     'Gearbox',
     'Clutch plate',
     'Clutch cable',
     'Gear shifter',
   ],
-
   'Drive System': [
     'Chain',
     'Front sprocket',
     'Rear sprocket',
     'Chain tensioner',
   ],
-
   'Brake System': [
     'Brake pads',
     'Brake disc',
@@ -238,14 +223,12 @@ const PartsByCategory MotorcycleParts = {
     'Brake fluid',
     'Brake hose',
   ],
-
   'Suspension': [
     'Front fork',
     'Rear shock absorber',
     'Swing arm',
     'Fork seal',
   ],
-
   'Electrical': [
     'Battery',
     'Starter motor',
@@ -256,7 +239,6 @@ const PartsByCategory MotorcycleParts = {
     'Fuse',
     'Wiring',
   ],
-
   'Controls': [
     'Handlebar',
     'Throttle cable',
@@ -264,14 +246,12 @@ const PartsByCategory MotorcycleParts = {
     'Brake lever',
     'Switch assembly',
   ],
-
   'Lighting': [
     'Headlight',
     'Tail light',
     'Indicator light',
     'Brake light',
   ],
-
   'Wheels': [
     'Tire',
     'Wheel rim',
@@ -279,7 +259,6 @@ const PartsByCategory MotorcycleParts = {
     'Spokes',
     'Wheel bearing',
   ],
-
   'Body': [
     'Fuel tank cover',
     'Side panel',

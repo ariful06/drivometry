@@ -14,10 +14,6 @@ class VehicleAnalytics {
     required this.maintenanceCost,
     required this.totalCost,
     required this.totalDistanceKm,
-    required this.rentalBillable,
-    required this.rentalDue,
-    required this.rentalTripKm,
-    required this.rentalTripCount,
     this.averageEfficiency,
     this.costPerKm,
   });
@@ -27,11 +23,6 @@ class VehicleAnalytics {
   final double maintenanceCost;
   final double totalCost;
   final double totalDistanceKm;
-  /// Sum of billable trip amounts (after customer-paid fuel) in selected period.
-  final double rentalBillable;
-  final double rentalDue;
-  final double rentalTripKm;
-  final int rentalTripCount;
   final double? averageEfficiency;
   final double? costPerKm;
 }
@@ -41,12 +32,10 @@ class MonthlyBreakdown {
     required this.month,
     required this.fuelCost,
     required this.maintenanceCost,
-    required this.rentalBillable,
   });
   final DateTime month;
   final double fuelCost;
   final double maintenanceCost;
-  final double rentalBillable;
   double get totalSpend => fuelCost + maintenanceCost;
 }
 
@@ -69,8 +58,6 @@ class AnalyticsLoaded extends AnalyticsState {
     required this.totalFuelCost,
     required this.totalMaintenanceCost,
     required this.totalCost,
-    required this.totalRentalBillable,
-    required this.totalRentalDue,
     required this.monthlyBreakdown,
     required this.dateRange,
   });
@@ -78,10 +65,9 @@ class AnalyticsLoaded extends AnalyticsState {
   final List<VehicleAnalytics> vehicleAnalytics;
   final double totalFuelCost;
   final double totalMaintenanceCost;
-  /// Operating spend (fuel + maintenance), excludes rental.
+
+  /// Total cost (fuel + maintenance).
   final double totalCost;
-  final double totalRentalBillable;
-  final double totalRentalDue;
   final List<MonthlyBreakdown> monthlyBreakdown;
   final DateRange dateRange;
 }

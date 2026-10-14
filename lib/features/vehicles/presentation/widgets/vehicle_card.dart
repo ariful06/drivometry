@@ -24,7 +24,8 @@ class VehicleDashboardListTile extends StatelessWidget {
   static const _accentRed = Color(0xFFDC2626);
   static const _accentAmber = Color(0xFFD97706);
 
-  static double _maintenanceHealthFraction(VehicleDashboardMetrics m, Vehicle vehicle) {
+  static double _maintenanceHealthFraction(
+      VehicleDashboardMetrics m, Vehicle vehicle) {
     var h = 1.0 - (m.partWarningsCount * 0.18).clamp(0.0, 0.65);
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -75,8 +76,9 @@ class VehicleDashboardListTile extends StatelessWidget {
     final shadowColor = isDark
         ? Colors.black.withValues(alpha: 0.45)
         : const Color(0xFF1A2B4A).withValues(alpha: 0.07);
-    final borderColor =
-        isDark ? colors.divider.withValues(alpha: 0.55) : const Color(0xFFE8ECF2);
+    final borderColor = isDark
+        ? colors.divider.withValues(alpha: 0.55)
+        : const Color(0xFFE8ECF2);
 
     final err = theme.colorScheme.error;
 
@@ -92,8 +94,9 @@ class VehicleDashboardListTile extends StatelessWidget {
     if (fitnessDay != null && !fitnessExpired) {
       daysUntilFitness = fitnessDay.difference(today).inDays;
     }
-    final fitnessSoon =
-        daysUntilFitness != null && daysUntilFitness >= 0 && daysUntilFitness <= 30;
+    final fitnessSoon = daysUntilFitness != null &&
+        daysUntilFitness >= 0 &&
+        daysUntilFitness <= 30;
 
     final barFill = Color.lerp(_accentRed, _accentGreen, health)!;
 
@@ -130,7 +133,8 @@ class VehicleDashboardListTile extends StatelessWidget {
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                          color:
+                              theme.colorScheme.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(14),
                         ),
                         child: Center(
@@ -179,7 +183,8 @@ class VehicleDashboardListTile extends StatelessWidget {
                                   foreground: status.fg,
                                 ),
                                 _OdometerChip(
-                                  odometer: Formatters.formatDistance(vehicle.currentOdometer),
+                                  odometer: Formatters.formatDistance(
+                                      vehicle.currentOdometer),
                                 ),
                               ],
                             ),
@@ -188,14 +193,16 @@ class VehicleDashboardListTile extends StatelessWidget {
                       ),
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
-                        child: Icon(Icons.chevron_right_rounded, color: colors.textSecondary, size: 26),
+                        child: Icon(Icons.chevron_right_rounded,
+                            color: colors.textSecondary, size: 26),
                       ),
                     ],
                   ),
                   const SizedBox(height: 18),
                   Row(
                     children: [
-                      Icon(Icons.health_and_safety_outlined, size: 16, color: colors.textSecondary),
+                      Icon(Icons.health_and_safety_outlined,
+                          size: 16, color: colors.textSecondary),
                       const SizedBox(width: 6),
                       Text(
                         'Maintenance health',
@@ -222,7 +229,8 @@ class VehicleDashboardListTile extends StatelessWidget {
                         Container(
                           height: 8,
                           width: double.infinity,
-                          color: colors.divider.withValues(alpha: isDark ? 0.35 : 0.55),
+                          color: colors.divider
+                              .withValues(alpha: isDark ? 0.35 : 0.55),
                         ),
                         LayoutBuilder(
                           builder: (context, c) {
@@ -272,9 +280,13 @@ class VehicleDashboardListTile extends StatelessWidget {
                       value: Formatters.formatCurrency(metrics.rentalIncome),
                       valueColor: _accentGreen,
                     ),
-                    Divider(height: 26, color: colors.divider.withValues(alpha: 0.5)),
+                    Divider(
+                        height: 26,
+                        color: colors.divider.withValues(alpha: 0.5)),
                     _StatRow(
-                      icon: profitPositive ? Icons.trending_up_rounded : Icons.trending_down_rounded,
+                      icon: profitPositive
+                          ? Icons.trending_up_rounded
+                          : Icons.trending_down_rounded,
                       iconColor: profitPositive ? _accentGreen : _accentRed,
                       label: 'Total profit',
                       value: Formatters.formatCurrency(profit),
@@ -286,7 +298,8 @@ class VehicleDashboardListTile extends StatelessWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.event_available_outlined, size: 16, color: _accentAmber),
+                        const Icon(Icons.event_available_outlined,
+                            size: 16, color: _accentAmber),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
@@ -305,19 +318,24 @@ class VehicleDashboardListTile extends StatelessWidget {
                   if (metrics.hasUrgentServiceAttention) ...[
                     const SizedBox(height: 10),
                     InkWell(
-                      onTap: () => context.push('/vehicles/${vehicle.id}/maintenance/add', extra: vehicle),
+                      onTap: () => context.push(
+                          '/vehicles/${vehicle.id}/maintenance/add',
+                          extra: vehicle),
                       borderRadius: BorderRadius.circular(12),
                       child: Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
                         decoration: BoxDecoration(
                           color: _accentAmber.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: _accentAmber.withValues(alpha: 0.45)),
+                          border: Border.all(
+                              color: _accentAmber.withValues(alpha: 0.45)),
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.warning_amber_rounded, size: 18, color: _accentAmber),
+                            const Icon(Icons.warning_amber_rounded,
+                                size: 18, color: _accentAmber),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
@@ -330,7 +348,8 @@ class VehicleDashboardListTile extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            const Icon(Icons.chevron_right_rounded, color: _accentAmber),
+                            const Icon(Icons.chevron_right_rounded,
+                                color: _accentAmber),
                           ],
                         ),
                       ),
@@ -344,7 +363,11 @@ class VehicleDashboardListTile extends StatelessWidget {
                         Icon(
                           Icons.verified_user_outlined,
                           size: 16,
-                          color: fitnessExpired ? err : (fitnessSoon ? _accentAmber : colors.textSecondary),
+                          color: fitnessExpired
+                              ? err
+                              : (fitnessSoon
+                                  ? _accentAmber
+                                  : colors.textSecondary),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -353,8 +376,11 @@ class VehicleDashboardListTile extends StatelessWidget {
                                 ? 'Fitness expired · ${Formatters.formatDate(fitness)}'
                                 : 'Fitness · ${Formatters.formatDate(fitness)}',
                             style: theme.textTheme.bodySmall?.copyWith(
-                              color: fitnessExpired ? err : colors.textSecondary,
-                              fontWeight: fitnessExpired ? FontWeight.w700 : FontWeight.w500,
+                              color:
+                                  fitnessExpired ? err : colors.textSecondary,
+                              fontWeight: fitnessExpired
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
                               height: 1.35,
                             ),
                           ),
