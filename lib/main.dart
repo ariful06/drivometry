@@ -107,34 +107,34 @@ class DrivometryApp extends StatelessWidget {
         listener: (context, state) => sl<RunMaintenanceReminderChecks>()(),
         child: BlocBuilder<StartupCubit, StartupState>(
           builder: (context, startupState) {
-          if (startupState is! StartupReady) {
-            return MaterialApp(
-              theme: AppTheme.lightTheme,
-              darkTheme: AppTheme.darkTheme,
-              home: const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
+            if (startupState is! StartupReady) {
+              return MaterialApp(
+                theme: AppTheme.lightTheme,
+                darkTheme: AppTheme.darkTheme,
+                home: const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                ),
+              );
+            }
+            final initialPath =
+                hasSeenOnboarding ? startupState.initialPath : '/onboarding';
+            // Create router once so theme changes don't recreate it and reset navigation.
+            final router = AppRouter.createRouter(initialLocation: initialPath);
+            return BlocProvider(
+              create: (_) => ThemeCubit()..loadTheme(),
+              child: BlocBuilder<ThemeCubit, ThemeMode>(
+                builder: (context, themeMode) {
+                  return MaterialApp.router(
+                    title: 'Drivometry',
+                    debugShowCheckedModeBanner: false,
+                    theme: AppTheme.lightTheme,
+                    darkTheme: AppTheme.darkTheme,
+                    themeMode: themeMode,
+                    routerConfig: router,
+                  );
+                },
               ),
             );
-          }
-          final initialPath =
-              hasSeenOnboarding ? startupState.initialPath : '/onboarding';
-          // Create router once so theme changes don't recreate it and reset navigation.
-          final router = AppRouter.createRouter(initialLocation: initialPath);
-          return BlocProvider(
-            create: (_) => ThemeCubit()..loadTheme(),
-            child: BlocBuilder<ThemeCubit, ThemeMode>(
-              builder: (context, themeMode) {
-                return MaterialApp.router(
-                  title: 'Drivometry',
-                  debugShowCheckedModeBanner: false,
-                  theme: AppTheme.lightTheme,
-                  darkTheme: AppTheme.darkTheme,
-                  themeMode: themeMode,
-                  routerConfig: router,
-                );
-              },
-            ),
-          );
           },
         ),
       ),

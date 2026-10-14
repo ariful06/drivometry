@@ -108,7 +108,7 @@ Tick a line (`[x]`) when the ticket's PR is merged into `dev`.
 
 - [x] Audit and plan (this document)
 - [ ] T01 Merge fuel consumption PR and fix dev build
-- [ ] T02 Add GitHub Actions CI (format, analyze, test)
+- [x] T02 Add GitHub Actions CI and automated PR review (VRF-5)
 - [ ] T03 Add Hive schema versioning and migration runner
 - [ ] T04 Fix notification time zone and stable notification ids
 - [ ] T05 Cascade-delete vehicle records
@@ -153,11 +153,11 @@ Files are estimates.
 - **Requirements:** review & merge PR #2 into `dev`; commit or drop your uncommitted `AndroidManifest.xml` / `vehicle_document_storage.dart` / `add_vehicle_page.dart` changes in their own ticket.
 - **Acceptance:** `dev` builds; `flutter test` passes on `dev`.
 
-#### T02 · `VRF: Add GitHub Actions CI (format, analyze, test)`
+#### T02 · `VRF: Add GitHub Actions CI and automated PR review`
 - **P0 · S · Deps:** T01
-- **Requirements:** `.github/workflows/ci.yml` on PRs to `dev`/`main`: `subosito/flutter-action` pinned to 3.41.4 with cache, `flutter pub get`, `dart format --set-exit-if-changed`, `flutter analyze --no-fatal-infos`, `flutter test`. Remove the 3 removed lint rules; fix 3 unused-field warnings; run `dart format` on the whole repo in this PR only.
-- **Acceptance:** CI green on a PR; a deliberately unformatted file fails CI.
-- **Files:** `.github/workflows/ci.yml`, `analysis_options.yaml`, `lib/core/theme/app_theme.dart`, `maintenance_cubit.dart`.
+- **Requirements:** `.github/workflows/ci.yml` on PRs and pushes to `dev`/`main`: `subosito/flutter-action` pinned to 3.41.4 with cache, `flutter pub get`, `dart format --set-exit-if-changed` on **changed `.dart` files only** (PRs; generated `*.g.dart`/`*.freezed.dart` excluded; the repo has many legacy unformatted files so a whole-repo gate is not used), `flutter analyze --no-fatal-infos`, `flutter test`. Remove the 3 removed lint rules; fix 3 unused-field warnings. Add `.github/workflows/claude-review.yml` using `anthropics/claude-code-action@v1`: reviews every non-draft PR to `dev`/`main`, posts inline comments for real problems and one top-level verdict comment, and answers `@claude` follow-ups on PRs. It never approves, merges or pushes; the owner decides. **Required secret:** `CLAUDE_CODE_OAUTH_TOKEN` (generate with `claude setup-token`) or `ANTHROPIC_API_KEY`; if neither is set the review job is skipped with a warning.
+- **Acceptance:** CI green on a PR; a deliberately unformatted changed file fails CI; Claude review comment appears on a PR once the secret is configured.
+- **Files:** `.github/workflows/ci.yml`, `.github/workflows/claude-review.yml`, `analysis_options.yaml`, `lib/core/theme/app_theme.dart`, `maintenance_cubit.dart`, `injection_container.dart`.
 
 #### T03 · `VRF: Add Hive schema versioning and migration runner`
 - **P0 · M · Deps:** T01

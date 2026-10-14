@@ -4,8 +4,7 @@ final class MaintenanceNotificationIds {
   MaintenanceNotificationIds._();
 
   static int odometerBurstBase(String maintenanceEntryId) {
-    final hashedPositive =
-        maintenanceEntryId.hashCode & 0x7FFFFFFF;
+    final hashedPositive = maintenanceEntryId.hashCode & 0x7FFFFFFF;
     return hashedPositive < 1 ? 1 : hashedPositive;
   }
 

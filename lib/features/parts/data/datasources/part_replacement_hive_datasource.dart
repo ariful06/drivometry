@@ -4,8 +4,7 @@ import '../../../../core/database/hive_storage.dart';
 import 'part_replacement_local_datasource.dart';
 import '../models/part_replacement_model.dart';
 
-class PartReplacementHiveDataSource
-    implements PartReplacementLocalDataSource {
+class PartReplacementHiveDataSource implements PartReplacementLocalDataSource {
   PartReplacementHiveDataSource() : _box = partReplacementsBox();
 
   final Box<dynamic> _box;

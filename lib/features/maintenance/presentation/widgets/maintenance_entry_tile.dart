@@ -14,6 +14,7 @@ class MaintenanceEntryTile extends StatelessWidget {
     super.key,
   });
   final MaintenanceEntry entry;
+
   /// When set, used to show overdue state for nextServiceOdometer.
   final double? currentVehicleOdometer;
 
@@ -120,7 +121,9 @@ class MaintenanceEntryTile extends StatelessWidget {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
-                          isParts ? Icons.settings_outlined : Icons.build_outlined,
+                          isParts
+                              ? Icons.settings_outlined
+                              : Icons.build_outlined,
                           color: entryColor,
                           size: 20,
                         ),
@@ -311,8 +314,8 @@ class _NextOdometerChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isOverdue = currentOdometer != null &&
-        currentOdometer! >= nextOdometer;
+    final isOverdue =
+        currentOdometer != null && currentOdometer! >= nextOdometer;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -353,9 +356,7 @@ class _NextOdometerChip extends StatelessWidget {
                 Text(
                   Formatters.formatDistance(nextOdometer.toDouble()),
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: isOverdue
-                        ? colors.warning
-                        : colors.maintenanceColor,
+                    color: isOverdue ? colors.warning : colors.maintenanceColor,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -379,7 +380,8 @@ class _NextRepairChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final startOfToday = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+    final startOfToday =
+        DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
     final dateOnly = DateTime(nextDate.year, nextDate.month, nextDate.day);
     final isOverdue = dateOnly.isBefore(startOfToday);
 
@@ -432,4 +434,3 @@ class _NextRepairChip extends StatelessWidget {
     );
   }
 }
-

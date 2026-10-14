@@ -27,7 +27,7 @@ class VehicleCubit extends Cubit<VehicleState> {
   void startWatching() {
     emit(const VehicleLoading());
     _subscription = _watchAllVehicles().listen(
-          (vehicles) => emit(VehicleLoaded(vehicles)),
+      (vehicles) => emit(VehicleLoaded(vehicles)),
       onError: (Object error) => emit(VehicleError(error.toString())),
     );
   }

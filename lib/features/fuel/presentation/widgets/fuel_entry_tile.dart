@@ -12,21 +12,23 @@ import '../pages/fuel_entry_detail_page.dart';
 
 class FuelEntryTile extends StatelessWidget {
   const FuelEntryTile({
-    required this.entry, super.key,
+    required this.entry,
+    super.key,
     this.previousEntry,
     this.consumption,
   });
   final FuelEntry entry;
+
   /// Chronologically previous refill (older); used for distance since that fill.
   final FuelEntry? previousEntry;
+
   /// Full-tank period this fill closes, if any (see [FuelConsumptionCalculator]).
   final FuelConsumptionSegment? consumption;
 
   /// Distance driven since previous refill. Null for the first (oldest) entry.
   double? get _distanceDriven {
     if (previousEntry == null) return null;
-    final distanceSincePreviousKm =
-        entry.odometer - previousEntry!.odometer;
+    final distanceSincePreviousKm = entry.odometer - previousEntry!.odometer;
     return distanceSincePreviousKm > 0 ? distanceSincePreviousKm : null;
   }
 

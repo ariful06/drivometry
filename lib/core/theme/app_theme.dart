@@ -8,8 +8,6 @@ class AppTheme {
   static const _primaryColor = Color(0xFF1E88E5);
   static const _secondaryColor = Color(0xFF26C6DA);
   static const _errorColor = Color(0xFFE53935);
-  static const _successColor = Color(0xFF43A047);
-  static const _warningColor = Color(0xFFFB8C00);
 
   static ThemeData get lightTheme => ThemeData(
         useMaterial3: true,

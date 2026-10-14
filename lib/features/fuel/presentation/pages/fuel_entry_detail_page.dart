@@ -19,8 +19,10 @@ class FuelEntryDetailArgs {
   });
 
   final FuelEntry entry;
+
   /// Chronologically older refill; used for distance since previous fill.
   final FuelEntry? previousEntry;
+
   /// Full-tank period this fill closes, if any.
   final FuelConsumptionSegment? consumption;
 }
@@ -49,7 +51,6 @@ class _FuelEntryDetailPageState extends State<FuelEntryDetailPage> {
     final distanceDeltaKm = _e.odometer - prev.odometer;
     return distanceDeltaKm > 0 ? distanceDeltaKm : null;
   }
-
 
   @override
   void initState() {
@@ -390,7 +391,8 @@ class _ReceiptCard extends StatelessWidget {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 child: Row(
                   children: [
                     Icon(

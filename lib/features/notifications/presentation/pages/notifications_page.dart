@@ -37,7 +37,8 @@ class _NotificationsView extends StatelessWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_outlined),
-            onPressed: () => context.read<NotificationsCubit>().loadUpcoming(daysAhead: 60),
+            onPressed: () =>
+                context.read<NotificationsCubit>().loadUpcoming(daysAhead: 60),
           ),
         ],
       ),
@@ -45,8 +46,10 @@ class _NotificationsView extends StatelessWidget {
         builder: (context, state) {
           return switch (state) {
             NotificationsInitial() => const SizedBox.shrink(),
-            NotificationsLoading() => const Center(child: CircularProgressIndicator()),
-            NotificationsError(:final message) => Center(child: Text('Error: $message')),
+            NotificationsLoading() =>
+              const Center(child: CircularProgressIndicator()),
+            NotificationsError(:final message) =>
+              Center(child: Text('Error: $message')),
             NotificationsLoaded(:final upcoming) => upcoming.isEmpty
                 ? _EmptyState()
                 : _UpcomingList(entries: upcoming),
@@ -64,16 +67,23 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.notifications_none_outlined, size: 72,
+          Icon(Icons.notifications_none_outlined,
+              size: 72,
               color: Theme.of(context).colorScheme.primary.withOpacity(0.3)),
           const SizedBox(height: 16),
           Text('No upcoming services',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+              style: Theme.of(context)
+                  .textTheme
+                  .titleMedium
+                  ?.copyWith(fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           Text('Scheduled maintenance reminders\nwill appear here.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5))),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withOpacity(0.5))),
         ],
       ),
     );
@@ -90,9 +100,8 @@ class _UpcomingList extends StatelessWidget {
     final startOfToday = DateTime(now.year, now.month, now.day);
     final startOfNextWeek = startOfToday.add(const Duration(days: 7));
 
-    final withDate = entries
-        .where((entry) => entry.nextServiceDate != null)
-        .toList();
+    final withDate =
+        entries.where((entry) => entry.nextServiceDate != null).toList();
     final byOdometer = entries
         .where(
           (entry) =>
@@ -131,28 +140,34 @@ class _UpcomingList extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       children: [
         if (overdue.isNotEmpty) ...[
-          _SectionHeader(label: 'Overdue', count: overdue.length, color: Theme.of(context).colorScheme.error),
+          _SectionHeader(
+              label: 'Overdue',
+              count: overdue.length,
+              color: Theme.of(context).colorScheme.error),
           const SizedBox(height: 8),
           ...overdue.map(
-                (entry) =>
-                    _NotificationCard(entry: entry, isOverdue: true),
-              ),
+            (entry) => _NotificationCard(entry: entry, isOverdue: true),
+          ),
           const SizedBox(height: 20),
         ],
         if (thisWeek.isNotEmpty) ...[
-          _SectionHeader(label: 'This Week', count: thisWeek.length, color: Colors.orange),
+          _SectionHeader(
+              label: 'This Week', count: thisWeek.length, color: Colors.orange),
           const SizedBox(height: 8),
           ...thisWeek.map(
-                (entry) => _NotificationCard(entry: entry),
-              ),
+            (entry) => _NotificationCard(entry: entry),
+          ),
           const SizedBox(height: 20),
         ],
         if (later.isNotEmpty) ...[
-          _SectionHeader(label: 'Upcoming', count: later.length, color: Theme.of(context).colorScheme.primary),
+          _SectionHeader(
+              label: 'Upcoming',
+              count: later.length,
+              color: Theme.of(context).colorScheme.primary),
           const SizedBox(height: 8),
           ...later.map(
-                (entry) => _NotificationCard(entry: entry),
-              ),
+            (entry) => _NotificationCard(entry: entry),
+          ),
           const SizedBox(height: 20),
         ],
         if (byOdometer.isNotEmpty) ...[
@@ -163,8 +178,8 @@ class _UpcomingList extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           ...byOdometer.map(
-                (entry) => _NotificationCard(entry: entry),
-              ),
+            (entry) => _NotificationCard(entry: entry),
+          ),
         ],
       ],
     );
@@ -172,7 +187,8 @@ class _UpcomingList extends StatelessWidget {
 }
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.label, required this.count, required this.color});
+  const _SectionHeader(
+      {required this.label, required this.count, required this.color});
   final String label;
   final int count;
   final Color color;
@@ -181,7 +197,11 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Container(width: 4, height: 18, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
+        Container(
+            width: 4,
+            height: 18,
+            decoration: BoxDecoration(
+                color: color, borderRadius: BorderRadius.circular(2))),
         const SizedBox(width: 8),
         Text(label.toUpperCase(),
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
@@ -189,8 +209,12 @@ class _SectionHeader extends StatelessWidget {
         const SizedBox(width: 8),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-          decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(20)),
-          child: Text('$count', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: color)),
+          decoration: BoxDecoration(
+              color: color.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(20)),
+          child: Text('$count',
+              style: TextStyle(
+                  fontSize: 11, fontWeight: FontWeight.w700, color: color)),
         ),
       ],
     );
@@ -216,8 +240,7 @@ class _NotificationCard extends StatelessWidget {
       final diff = nextDateOnly.difference(startOfToday).inDays;
       if (isOverdue) {
         final daysOverdue = startOfToday.difference(nextDateOnly).inDays;
-        dueLabel =
-            'Overdue by $daysOverdue day${daysOverdue == 1 ? "" : "s"}';
+        dueLabel = 'Overdue by $daysOverdue day${daysOverdue == 1 ? "" : "s"}';
         dueColor = Theme.of(context).colorScheme.error;
       } else if (diff == 0) {
         dueLabel = 'Due today';
@@ -243,9 +266,17 @@ class _NotificationCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 44, height: 44,
-              decoration: BoxDecoration(color: dueColor.withOpacity(0.12), borderRadius: BorderRadius.circular(12)),
-              child: Icon(entry.type == 'parts' ? Icons.settings_outlined : Icons.build_outlined, color: dueColor, size: 22),
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                  color: dueColor.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12)),
+              child: Icon(
+                  entry.type == 'parts'
+                      ? Icons.settings_outlined
+                      : Icons.build_outlined,
+                  color: dueColor,
+                  size: 22),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -253,31 +284,56 @@ class _NotificationCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(entry.title,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleSmall
+                          ?.copyWith(fontWeight: FontWeight.w700)),
                   const SizedBox(height: 2),
                   Text(entry.description,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6)),
-                      maxLines: 2, overflow: TextOverflow.ellipsis),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.6)),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 6),
                   if (nextDate != null)
                     Row(children: [
-                      Icon(Icons.calendar_today_outlined, size: 12, color: dueColor),
+                      Icon(Icons.calendar_today_outlined,
+                          size: 12, color: dueColor),
                       const SizedBox(width: 4),
-                      Text('${DateFormat("dd MMM yyyy").format(nextDate)}  •  $dueLabel',
-                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: dueColor)),
+                      Text(
+                          '${DateFormat("dd MMM yyyy").format(nextDate)}  •  $dueLabel',
+                          style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: dueColor)),
                     ])
                   else
                     Text(dueLabel,
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: dueColor)),
+                        style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: dueColor)),
                   if (entry.nextServiceOdometer != null) ...[
                     const SizedBox(height: 4),
                     Row(children: [
-                      Icon(Icons.speed_outlined, size: 12,
-                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
+                      Icon(Icons.speed_outlined,
+                          size: 12,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.5)),
                       const SizedBox(width: 4),
-                      Text('At ${NumberFormat("#,###").format(entry.nextServiceOdometer)} km',
-                          style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5))),
+                      Text(
+                          'At ${NumberFormat("#,###").format(entry.nextServiceOdometer)} km',
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withOpacity(0.5))),
                     ]),
                   ],
                 ],
@@ -290,11 +346,14 @@ class _NotificationCard extends StatelessWidget {
                 onChanged: (v) async {
                   if (v != true) return;
                   try {
-                    await context.read<NotificationsCubit>().markReminderDone(entry);
+                    await context
+                        .read<NotificationsCubit>()
+                        .markReminderDone(entry);
                   } catch (_) {
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Could not update reminder')),
+                        const SnackBar(
+                            content: Text('Could not update reminder')),
                       );
                     }
                   }

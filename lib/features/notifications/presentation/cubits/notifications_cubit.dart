@@ -77,13 +77,12 @@ class NotificationsCubit extends Cubit<NotificationsState> {
       final vehiclesByIdMap = {
         for (final vehicle in vehicles) vehicle.id: vehicle,
       };
-      final filteredReminderEntries =
-          entries
-              .where(
-                (maintenanceEntry) =>
-                    _withinReminderProximity(maintenanceEntry, vehiclesByIdMap),
-              )
-              .toList();
+      final filteredReminderEntries = entries
+          .where(
+            (maintenanceEntry) =>
+                _withinReminderProximity(maintenanceEntry, vehiclesByIdMap),
+          )
+          .toList();
       emit(NotificationsLoaded(filteredReminderEntries));
     } catch (error) {
       emit(NotificationsError(error.toString()));
