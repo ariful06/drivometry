@@ -33,18 +33,20 @@ class _RentalsView extends StatelessWidget {
           return switch (state) {
             RentalInitial() => const SizedBox.shrink(),
             RentalLoading() => const LoadingOverlay(),
-            RentalError(:final message) => Center(child: Text('Error: $message')),
-            RentalLoaded(:final entries, :final totalFare, :final totalDue) => entries.isEmpty
-                ? const EmptyState(
-                    icon: Icons.car_rental_outlined,
-                    title: 'No rental records yet',
-                    subtitle: 'Tap + to create your first booking.',
-                  )
-                : _RentalList(
-                    entries: entries,
-                    totalFare: totalFare,
-                    totalDue: totalDue,
-                  ),
+            RentalError(:final message) =>
+              Center(child: Text('Error: $message')),
+            RentalLoaded(:final entries, :final totalFare, :final totalDue) =>
+              entries.isEmpty
+                  ? const EmptyState(
+                      icon: Icons.car_rental_outlined,
+                      title: 'No rental records yet',
+                      subtitle: 'Tap + to create your first booking.',
+                    )
+                  : _RentalList(
+                      entries: entries,
+                      totalFare: totalFare,
+                      totalDue: totalDue,
+                    ),
           };
         },
       ),
@@ -138,7 +140,8 @@ class _RentalList extends StatelessWidget {
         children: [
           Text(
             title,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(color: color),
+            style:
+                Theme.of(context).textTheme.labelSmall?.copyWith(color: color),
           ),
           const SizedBox(height: 2),
           Text(

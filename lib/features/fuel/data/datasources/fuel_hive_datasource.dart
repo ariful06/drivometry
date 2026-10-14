@@ -24,8 +24,7 @@ class FuelHiveDataSource implements FuelLocalDataSource {
       }
     }
     list.sort(
-      (leftEntry, rightEntry) =>
-          rightEntry.date.compareTo(leftEntry.date),
+      (leftEntry, rightEntry) => rightEntry.date.compareTo(leftEntry.date),
     );
     return list;
   }
@@ -33,13 +32,13 @@ class FuelHiveDataSource implements FuelLocalDataSource {
   double _sumTotalCost(Iterable<FuelEntryModel> entries) {
     return entries.fold<double>(
       0,
-      (runningCostSum, fuelModel) =>
-          runningCostSum + fuelModel.totalCost,
+      (runningCostSum, fuelModel) => runningCostSum + fuelModel.totalCost,
     );
   }
 
   @override
-  Future<List<FuelEntryModel>> getFuelEntriesByVehicle(String vehicleId) async =>
+  Future<List<FuelEntryModel>> getFuelEntriesByVehicle(
+          String vehicleId) async =>
       _byVehicle(vehicleId);
 
   @override

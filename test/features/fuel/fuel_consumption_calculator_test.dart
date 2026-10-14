@@ -91,7 +91,8 @@ void main() {
       FuelConsumptionCalculator.previewForDraft(
         history,
         _fill('d', 1500, 20),
-      )!.kmPerLiter,
+      )!
+          .kmPerLiter,
       500 / 30,
     );
     expect(

@@ -25,8 +25,10 @@ class VehicleDashboardTabsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(create: (_) => sl<FuelCubit>()..watchForVehicle(vehicle.id)),
-        BlocProvider(create: (_) => sl<MaintenanceCubit>()..watchForVehicle(vehicle.id)),
+        BlocProvider(
+            create: (_) => sl<FuelCubit>()..watchForVehicle(vehicle.id)),
+        BlocProvider(
+            create: (_) => sl<MaintenanceCubit>()..watchForVehicle(vehicle.id)),
       ],
       child: _VehicleDashboardTabsView(vehicle: vehicle),
     );
@@ -302,9 +304,7 @@ class _TabSegment extends StatelessWidget {
               Icon(
                 icon,
                 size: 20,
-                color: selected
-                    ? Colors.white
-                    : colors.textSecondary,
+                color: selected ? Colors.white : colors.textSecondary,
               ),
               const SizedBox(width: 8),
               Flexible(
@@ -312,9 +312,7 @@ class _TabSegment extends StatelessWidget {
                   label,
                   style: theme.textTheme.labelLarge?.copyWith(
                     fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-                    color: selected
-                        ? Colors.white
-                        : colors.textSecondary,
+                    color: selected ? Colors.white : colors.textSecondary,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -362,13 +360,17 @@ class _VehicleHeaderCard extends StatelessWidget {
               children: [
                 Text(
                   '${vehicle.make} ${vehicle.model}',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700),
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleSmall
+                      ?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 Text(
                   '${vehicle.year} • ${vehicle.licensePlate}',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: colors.textSecondary),
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: colors.textSecondary),
                 ),
               ],
             ),
@@ -379,14 +381,16 @@ class _VehicleHeaderCard extends StatelessWidget {
               Text(
                 Formatters.formatDistance(vehicle.currentOdometer),
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                      fontWeight: FontWeight.w800,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
               ),
               Text(
                 'Odometer',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: colors.textSecondary),
+                style: Theme.of(context)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(color: colors.textSecondary),
               ),
             ],
           ),
@@ -410,13 +414,11 @@ class _FuelTab extends StatelessWidget {
           FuelError(:final message) => Center(child: Text('Error: $message')),
           FuelLoaded(:final entries, :final totalCost) => entries.isEmpty
               ? const Padding(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: 24, vertical: 48),
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 48),
                   child: EmptyState(
                     icon: Icons.local_gas_station_outlined,
                     title: 'No fuel entries yet',
-                    subtitle:
-                        'Tap Log Fuel below to add your first fill-up.',
+                    subtitle: 'Tap Log Fuel below to add your first fill-up.',
                   ),
                 )
               : _FuelList(
@@ -447,7 +449,8 @@ class _FuelList extends StatelessWidget {
       entries.cast<FuelEntry>(),
       tankCapacityLiters: tankCapacityLiters,
     );
-    final consumptionByEntryId = FuelConsumptionCalculator.byEndEntryId(segments);
+    final consumptionByEntryId =
+        FuelConsumptionCalculator.byEndEntryId(segments);
     final latestConsumption = segments.isEmpty ? null : segments.last;
 
     return CustomScrollView(
@@ -478,10 +481,10 @@ class _FuelList extends StatelessWidget {
                   child: Text(
                     'Fill history',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: colors.textSecondary,
-                      letterSpacing: 0.2,
-                    ),
+                          fontWeight: FontWeight.w600,
+                          color: colors.textSecondary,
+                          letterSpacing: 0.2,
+                        ),
                   ),
                 ),
               ],
@@ -496,8 +499,7 @@ class _FuelList extends StatelessWidget {
                 padding: const EdgeInsets.only(bottom: 10),
                 child: FuelEntryTile(
                   entry: entries[i],
-                  previousEntry:
-                      i + 1 < entries.length ? entries[i + 1] : null,
+                  previousEntry: i + 1 < entries.length ? entries[i + 1] : null,
                   consumption: consumptionByEntryId[entries[i].id],
                 ),
               ),
@@ -694,8 +696,7 @@ class _MaintenanceTab extends StatelessWidget {
             Center(child: Text('Error: $message')),
           MaintenanceLoaded(:final entries) => entries.isEmpty
               ? const Padding(
-                  padding: EdgeInsets.symmetric(
-                      horizontal: 24, vertical: 48),
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 48),
                   child: EmptyState(
                     icon: Icons.build_outlined,
                     title: 'No service records yet',
@@ -734,8 +735,7 @@ class _MaintenanceList extends StatelessWidget {
     final startOfToday = DateTime(now.year, now.month, now.day);
     DateTime? closest;
     for (final maintenanceEntry in entries) {
-      final upcomingServiceDate =
-          maintenanceEntry.nextServiceDate;
+      final upcomingServiceDate = maintenanceEntry.nextServiceDate;
       if (upcomingServiceDate == null) continue;
       final dateOnly = DateTime(
         upcomingServiceDate.year,

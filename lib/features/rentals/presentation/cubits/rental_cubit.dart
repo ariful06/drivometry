@@ -41,7 +41,8 @@ class RentalCubit extends Cubit<RentalState> {
     _subscription?.cancel();
     _subscription = _watchAllRentals().listen(
       (entries) {
-        final totalFare = entries.fold<double>(0, (sum, e) => sum + e.rentFareAmount);
+        final totalFare =
+            entries.fold<double>(0, (sum, e) => sum + e.rentFareAmount);
         final totalDue = entries.fold<double>(0, (sum, e) => sum + e.dueAmount);
         emit(
           RentalLoaded(
@@ -191,8 +192,7 @@ class RentalCubit extends Cubit<RentalState> {
       customerPaidFuelBill: entry.customerPaidFuelBill,
     );
 
-    final extraPayment =
-        partialPaymentAmount < 0 ? 0.0 : partialPaymentAmount;
+    final extraPayment = partialPaymentAmount < 0 ? 0.0 : partialPaymentAmount;
 
     final double newAdvance;
     final String paymentStatus;

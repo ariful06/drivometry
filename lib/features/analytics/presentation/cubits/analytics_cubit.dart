@@ -25,7 +25,8 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
   final VehicleRepository _vehicleRepo;
   final RentalRepository _rentalRepo;
 
-  Future<void> loadAnalytics({required String period, String? vehicleId}) async {
+  Future<void> loadAnalytics(
+      {required String period, String? vehicleId}) async {
     emit(const AnalyticsLoading());
     try {
       final now = DateTime.now();
@@ -36,30 +37,29 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
       final vehicleAnalytics = <VehicleAnalytics>[];
       for (final vehicle in vehicles) {
         if (vehicleId != null && vehicle.id != vehicleId) continue;
-        final fuelCost = await _fuelRepo.getTotalFuelCostByVehicleInRange(vehicle.id, range.from, range.to);
+        final fuelCost = await _fuelRepo.getTotalFuelCostByVehicleInRange(
+            vehicle.id, range.from, range.to);
         final maintenanceCost =
-            await _maintenanceRepo.getTotalMaintenanceCostByVehicleInRange(vehicle.id, range.from, range.to);
+            await _maintenanceRepo.getTotalMaintenanceCostByVehicleInRange(
+                vehicle.id, range.from, range.to);
         final fuelEntries = await _fuelRepo.getFuelEntriesByVehicle(vehicle.id);
-        final totalDistance =
-            fuelEntries.fold<double>(
-              0,
-              (runningKm, fuelEntryRow) =>
-                  runningKm + (fuelEntryRow.distanceDriven ?? 0),
-            );
-        final avgEfficiency =
-            FuelConsumptionCalculator.averageKmPerLiter(
+        final totalDistance = fuelEntries.fold<double>(
+          0,
+          (runningKm, fuelEntryRow) =>
+              runningKm + (fuelEntryRow.distanceDriven ?? 0),
+        );
+        final avgEfficiency = FuelConsumptionCalculator.averageKmPerLiter(
           fuelEntries,
           tankCapacityLiters: vehicle.tankCapacityLiters,
         );
 
-        final rentalListForVehicle =
-            allRentals
-                .where(
-                  (rentalRow) =>
-                      rentalRow.vehicleId == vehicle.id &&
-                      _inRange(rentalRow.bookingDate, range),
-                )
-                .toList();
+        final rentalListForVehicle = allRentals
+            .where(
+              (rentalRow) =>
+                  rentalRow.vehicleId == vehicle.id &&
+                  _inRange(rentalRow.bookingDate, range),
+            )
+            .toList();
         final rentalBillable = rentalListForVehicle.fold<double>(
           0,
           (runningBillableSum, rentalRow) =>
@@ -72,13 +72,11 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
         );
         final rentalDue = rentalListForVehicle.fold<double>(
           0,
-          (runningDueSum, rentalRow) =>
-              runningDueSum + rentalRow.dueAmount,
+          (runningDueSum, rentalRow) => runningDueSum + rentalRow.dueAmount,
         );
         final rentalTripKm = rentalListForVehicle.fold<double>(
           0,
-          (runningKmSum, rentalRow) =>
-              runningKmSum + rentalRow.totalKm,
+          (runningKmSum, rentalRow) => runningKmSum + rentalRow.totalKm,
         );
 
         vehicleAnalytics.add(VehicleAnalytics(
@@ -93,11 +91,14 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
           rentalTripKm: rentalTripKm,
           rentalTripCount: rentalListForVehicle.length,
           averageEfficiency: avgEfficiency,
-          costPerKm: totalDistance > 0 ? (fuelCost + maintenanceCost) / totalDistance : null,
+          costPerKm: totalDistance > 0
+              ? (fuelCost + maintenanceCost) / totalDistance
+              : null,
         ));
       }
 
-      final monthlyData = await _buildMonthlyBreakdown(vehicleId, now, allRentals);
+      final monthlyData =
+          await _buildMonthlyBreakdown(vehicleId, now, allRentals);
       final totalFuel = vehicleAnalytics.fold<double>(
         0,
         (runningFuelSum, vehicleMetricRow) =>
@@ -167,12 +168,15 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
       final double fuelCost;
       final double maintenanceCost;
       if (vehicleId != null) {
-        fuelCost = await _fuelRepo.getTotalFuelCostByVehicleInRange(vehicleId, month, monthEnd);
+        fuelCost = await _fuelRepo.getTotalFuelCostByVehicleInRange(
+            vehicleId, month, monthEnd);
         maintenanceCost =
-            await _maintenanceRepo.getTotalMaintenanceCostByVehicleInRange(vehicleId, month, monthEnd);
+            await _maintenanceRepo.getTotalMaintenanceCostByVehicleInRange(
+                vehicleId, month, monthEnd);
       } else {
         fuelCost = await _fuelRepo.getTotalFuelCostInRange(month, monthEnd);
-        maintenanceCost = await _maintenanceRepo.getTotalMaintenanceCostInRange(month, monthEnd);
+        maintenanceCost = await _maintenanceRepo.getTotalMaintenanceCostInRange(
+            month, monthEnd);
       }
       final range = DateRange(from: month, to: monthEnd);
       final rentalBillable = allRentals

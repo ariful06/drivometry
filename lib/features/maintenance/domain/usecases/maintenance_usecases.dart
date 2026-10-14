@@ -86,8 +86,8 @@ class RunMaintenanceReminderChecks {
 
           if (!working.odometerReminderScheduled &&
               working.nextServiceOdometer != null) {
-            final remKm = working.nextServiceOdometer! -
-                vehicle.currentOdometer.ceil();
+            final remKm =
+                working.nextServiceOdometer! - vehicle.currentOdometer.ceil();
             if (remKm <= proximityKm) {
               final baseId =
                   MaintenanceNotificationIds.odometerBurstBase(working.id);

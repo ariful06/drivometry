@@ -251,7 +251,8 @@ void main() {
     await _pumpPage(tester, _vehicle(tankCapacity: null), history: history);
 
     expect(_field('Liters *'), findsOneWidget);
-    expect(find.text('No tank capacity saved for this vehicle'), findsOneWidget);
+    expect(
+        find.text('No tank capacity saved for this vehicle'), findsOneWidget);
   });
 
   testWidgets('first log for a vehicle asks for odometer and saves full tank',

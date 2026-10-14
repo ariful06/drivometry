@@ -57,27 +57,26 @@ class MaintenanceEntryModel {
             map['odometer_reminder_scheduled'] as bool? ?? false,
         dateProximityReminderScheduled:
             map['date_proximity_reminder_scheduled'] as bool? ?? false,
-        reminderAcknowledged:
-            map['reminder_acknowledged'] as bool? ?? false,
+        reminderAcknowledged: map['reminder_acknowledged'] as bool? ?? false,
       );
 
   Map<String, dynamic> toMap() => {
-    'id': id,
-    'vehicle_id': vehicleId,
-    'type': type,
-    'title': title,
-    'description': description,
-    'cost': cost,
-    'odometer': odometer,
-    'service_date': serviceDate.toIso8601String(),
-    'next_service_date': nextServiceDate?.toIso8601String(),
-    'next_service_odometer': nextServiceOdometer,
-    'notes': notes,
-    'notification_id': notificationId,
-    'odometer_reminder_scheduled': odometerReminderScheduled,
-    'date_proximity_reminder_scheduled': dateProximityReminderScheduled,
-    'reminder_acknowledged': reminderAcknowledged,
-  };
+        'id': id,
+        'vehicle_id': vehicleId,
+        'type': type,
+        'title': title,
+        'description': description,
+        'cost': cost,
+        'odometer': odometer,
+        'service_date': serviceDate.toIso8601String(),
+        'next_service_date': nextServiceDate?.toIso8601String(),
+        'next_service_odometer': nextServiceOdometer,
+        'notes': notes,
+        'notification_id': notificationId,
+        'odometer_reminder_scheduled': odometerReminderScheduled,
+        'date_proximity_reminder_scheduled': dateProximityReminderScheduled,
+        'reminder_acknowledged': reminderAcknowledged,
+      };
 
   factory MaintenanceEntryModel.fromEntity(MaintenanceEntry e) =>
       MaintenanceEntryModel(
@@ -99,20 +98,20 @@ class MaintenanceEntryModel {
       );
 
   MaintenanceEntry toEntity() => MaintenanceEntry(
-    id: id,
-    vehicleId: vehicleId,
-    type: type,
-    title: title,
-    description: description,
-    cost: cost,
-    odometer: odometer,
-    serviceDate: serviceDate,
-    nextServiceDate: nextServiceDate,
-    nextServiceOdometer: nextServiceOdometer,
-    notes: notes,
-    notificationId: notificationId,
-    odometerReminderScheduled: odometerReminderScheduled,
-    dateProximityReminderScheduled: dateProximityReminderScheduled,
-    reminderAcknowledged: reminderAcknowledged,
-  );
+        id: id,
+        vehicleId: vehicleId,
+        type: type,
+        title: title,
+        description: description,
+        cost: cost,
+        odometer: odometer,
+        serviceDate: serviceDate,
+        nextServiceDate: nextServiceDate,
+        nextServiceOdometer: nextServiceOdometer,
+        notes: notes,
+        notificationId: notificationId,
+        odometerReminderScheduled: odometerReminderScheduled,
+        dateProximityReminderScheduled: dateProximityReminderScheduled,
+        reminderAcknowledged: reminderAcknowledged,
+      );
 }

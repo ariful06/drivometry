@@ -29,10 +29,13 @@ class MaintenanceEntry {
   final int? nextServiceOdometer;
   final String? notes;
   final int? notificationId;
+
   /// True after we've scheduled the 8 daily reminders for nextServiceOdometer.
   final bool odometerReminderScheduled;
+
   /// Proximity burst (same pattern as odometer) for upcoming [nextServiceDate].
   final bool dateProximityReminderScheduled;
+
   /// User marked the Reminder tab item as done (serviced); hides it from reminders.
   final bool reminderAcknowledged;
 
@@ -52,23 +55,24 @@ class MaintenanceEntry {
     bool? odometerReminderScheduled,
     bool? dateProximityReminderScheduled,
     bool? reminderAcknowledged,
-  }) => MaintenanceEntry(
-    id: id ?? this.id,
-    vehicleId: vehicleId ?? this.vehicleId,
-    type: type ?? this.type,
-    title: title ?? this.title,
-    description: description ?? this.description,
-    cost: cost ?? this.cost,
-    odometer: odometer ?? this.odometer,
-    serviceDate: serviceDate ?? this.serviceDate,
-    nextServiceDate: nextServiceDate ?? this.nextServiceDate,
-    nextServiceOdometer: nextServiceOdometer ?? this.nextServiceOdometer,
-    notes: notes ?? this.notes,
-    notificationId: notificationId ?? this.notificationId,
-    odometerReminderScheduled:
-        odometerReminderScheduled ?? this.odometerReminderScheduled,
-    dateProximityReminderScheduled: dateProximityReminderScheduled ??
-        this.dateProximityReminderScheduled,
-    reminderAcknowledged: reminderAcknowledged ?? this.reminderAcknowledged,
-  );
+  }) =>
+      MaintenanceEntry(
+        id: id ?? this.id,
+        vehicleId: vehicleId ?? this.vehicleId,
+        type: type ?? this.type,
+        title: title ?? this.title,
+        description: description ?? this.description,
+        cost: cost ?? this.cost,
+        odometer: odometer ?? this.odometer,
+        serviceDate: serviceDate ?? this.serviceDate,
+        nextServiceDate: nextServiceDate ?? this.nextServiceDate,
+        nextServiceOdometer: nextServiceOdometer ?? this.nextServiceOdometer,
+        notes: notes ?? this.notes,
+        notificationId: notificationId ?? this.notificationId,
+        odometerReminderScheduled:
+            odometerReminderScheduled ?? this.odometerReminderScheduled,
+        dateProximityReminderScheduled: dateProximityReminderScheduled ??
+            this.dateProximityReminderScheduled,
+        reminderAcknowledged: reminderAcknowledged ?? this.reminderAcknowledged,
+      );
 }

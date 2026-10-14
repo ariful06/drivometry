@@ -89,9 +89,8 @@ class _AddMaintenancePageState extends State<AddMaintenancePage> {
                         Expanded(
                           child: TextFormField(
                             controller: _costCtrl,
-                            keyboardType:
-                                const TextInputType.numberWithOptions(
-                                    decimal: true),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
                             decoration: const InputDecoration(
                               labelText: 'Cost *',
                               prefixIcon: Icon(Icons.payments_outlined),
@@ -107,9 +106,8 @@ class _AddMaintenancePageState extends State<AddMaintenancePage> {
                         Expanded(
                           child: TextFormField(
                             controller: _odometerCtrl,
-                            keyboardType:
-                                const TextInputType.numberWithOptions(
-                                    decimal: true),
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
                             decoration: const InputDecoration(
                               labelText: 'Odometer *',
                               prefixIcon: Icon(Icons.speed_outlined),
@@ -183,18 +181,17 @@ class _AddMaintenancePageState extends State<AddMaintenancePage> {
                     Text(
                       'Next service odometer will be calculated from current odometer + part lifespan(s).',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context)
-                            .extension<AppColors>()
-                            ?.textSecondary,
-                      ),
+                            color: Theme.of(context)
+                                .extension<AppColors>()
+                                ?.textSecondary,
+                          ),
                     ),
                   ],
                   const SizedBox(height: 24),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton(
-                      onPressed:
-                          state.isSaving ? null : () => _submit(context),
+                      onPressed: state.isSaving ? null : () => _submit(context),
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                       ),
@@ -298,8 +295,7 @@ class _AddMaintenancePageState extends State<AddMaintenancePage> {
 
       final currentOdo = double.parse(_odometerCtrl.text.trim()).round();
       int? nextServiceOdometer;
-      if (state.partLifespansKm.isNotEmpty &&
-          state.selectedParts.isNotEmpty) {
+      if (state.partLifespansKm.isNotEmpty && state.selectedParts.isNotEmpty) {
         final minLifespan = state.partLifespansKm.values.reduce(
           (minimumKmSoFar, lifespanKmForPart) =>
               lifespanKmForPart < minimumKmSoFar
@@ -714,8 +710,9 @@ class _PerPartCostsSection extends StatelessWidget {
                   width: 110,
                   child: TextFormField(
                     key: ValueKey('cost_$p'),
-                    initialValue:
-                        partCosts[p] != null ? partCosts[p]!.toStringAsFixed(0) : '',
+                    initialValue: partCosts[p] != null
+                        ? partCosts[p]!.toStringAsFixed(0)
+                        : '',
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
                     decoration: const InputDecoration(
@@ -771,17 +768,17 @@ class _DatePickerTile extends StatelessWidget {
           prefixIcon: const Icon(Icons.calendar_today_outlined),
           suffixIcon: onClear != null
               ? IconButton(
-            icon: const Icon(Icons.close, size: 18),
-            onPressed: onClear,
-          )
+                  icon: const Icon(Icons.close, size: 18),
+                  onPressed: onClear,
+                )
               : null,
         ),
         child: Text(
           date != null
               ? DateFormat('dd MMM yyyy').format(date!)
               : isOptional
-              ? 'Tap to set...'
-              : DateFormat('dd MMM yyyy').format(DateTime.now()),
+                  ? 'Tap to set...'
+                  : DateFormat('dd MMM yyyy').format(DateTime.now()),
           style: date == null
               ? TextStyle(color: Theme.of(context).hintColor)
               : null,

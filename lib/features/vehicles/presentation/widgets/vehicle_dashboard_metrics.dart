@@ -31,19 +31,26 @@ class VehicleDashboardMetrics {
 
   final double fuelCost;
   final double maintenanceCost;
+
   /// Sum of billable trip amounts for this vehicle (lifetime).
   final double rentalIncome;
+
   /// Fuel + maintenance only (not net of rental income).
   final double totalOperatingCost;
   final int partWarningsCount;
+
   /// Short line for the nearest upcoming service (date or odometer).
   final String? closestServiceSummary;
+
   /// Human-readable remaining/overdue for nearest service trigger.
   final String? closestServiceRemaining;
+
   /// Number of services that are overdue or close soon.
   final int serviceAttentionCount;
+
   /// Comma-separated service titles that need attention.
   final String? serviceAttentionItemsLabel;
+
   /// True when at least one service is overdue or close soon.
   final bool hasUrgentServiceAttention;
   final int paidRentalCount;
@@ -69,7 +76,8 @@ class VehicleDashboardMetrics {
 
   /// True when [newer] is a later log for the same maintenance line as [older]
   /// (e.g. replaced oil change vs previous oil change record).
-  static bool _sameMaintenanceLine(MaintenanceEntry older, MaintenanceEntry newer) {
+  static bool _sameMaintenanceLine(
+      MaintenanceEntry older, MaintenanceEntry newer) {
     if (older.type != newer.type) return false;
     if (older.type == 'repair') {
       final olderTitleLower = older.title.trim().toLowerCase();
@@ -179,7 +187,8 @@ class VehicleDashboardMetrics {
     return parts.join(' · ');
   }
 
-  static String? _closestServiceRemaining(MaintenanceEntry? entry, Vehicle vehicle) {
+  static String? _closestServiceRemaining(
+      MaintenanceEntry? entry, Vehicle vehicle) {
     if (entry == null) return null;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -198,8 +207,7 @@ class VehicleDashboardMetrics {
       return '$diff day${diff == 1 ? '' : 's'} remaining';
     }
     if (entry.nextServiceOdometer != null) {
-      final rem =
-          entry.nextServiceOdometer! - vehicle.currentOdometer.ceil();
+      final rem = entry.nextServiceOdometer! - vehicle.currentOdometer.ceil();
       if (rem < 0) {
         return 'Overdue by ${-rem} km';
       }
@@ -214,11 +222,11 @@ class VehicleDashboardMetrics {
     final today = DateTime(now.year, now.month, now.day);
     final nextServiceCalendarDate = entry.nextServiceDate;
     if (nextServiceCalendarDate != null) {
-      final diff =
-          DateTime(nextServiceCalendarDate.year, nextServiceCalendarDate.month,
-                  nextServiceCalendarDate.day,)
-              .difference(today)
-              .inDays;
+      final diff = DateTime(
+        nextServiceCalendarDate.year,
+        nextServiceCalendarDate.month,
+        nextServiceCalendarDate.day,
+      ).difference(today).inDays;
       if (diff <= serviceSoonDays) return true;
     }
     final nextDueOdometerKm = entry.nextServiceOdometer;
@@ -242,23 +250,29 @@ class VehicleDashboardMetrics {
     final closest = _pickClosestUpcoming(scheduleEntries, vehicle);
     final closestServiceSummary = _formatClosest(closest);
     final closestServiceRemaining = _closestServiceRemaining(closest, vehicle);
-    final urgentEntries =
-        scheduleEntries.where((entry) => _isServiceUrgent(entry, vehicle)).toList();
+    final urgentEntries = scheduleEntries
+        .where((entry) => _isServiceUrgent(entry, vehicle))
+        .toList();
     final serviceAttentionCount = urgentEntries.length;
-    final urgentTitles = urgentEntries.map((entry) {
-      final type = entry.type.trim();
-      final title = entry.title.trim();
-      final description = entry.description.trim();
-      final itemName = description.isNotEmpty ? description : title;
-      if (type.isNotEmpty && itemName.isNotEmpty) return '$type: $itemName';
-      if (itemName.isNotEmpty) return itemName;
-      return type;
-    }).where((trimmedTitle) => trimmedTitle.isNotEmpty).toSet().toList();
+    final urgentTitles = urgentEntries
+        .map((entry) {
+          final type = entry.type.trim();
+          final title = entry.title.trim();
+          final description = entry.description.trim();
+          final itemName = description.isNotEmpty ? description : title;
+          if (type.isNotEmpty && itemName.isNotEmpty) return '$type: $itemName';
+          if (itemName.isNotEmpty) return itemName;
+          return type;
+        })
+        .where((trimmedTitle) => trimmedTitle.isNotEmpty)
+        .toSet()
+        .toList();
     String? serviceAttentionItemsLabel;
     if (urgentTitles.isNotEmpty) {
       final preview = urgentTitles.take(3).join(', ');
       if (urgentTitles.length > 3) {
-        serviceAttentionItemsLabel = '$preview +${urgentTitles.length - 3} more';
+        serviceAttentionItemsLabel =
+            '$preview +${urgentTitles.length - 3} more';
       } else {
         serviceAttentionItemsLabel = preview;
       }
@@ -276,7 +290,8 @@ class VehicleDashboardMetrics {
       }
     }
 
-    final maintCost = await maintenanceRepo.getTotalMaintenanceCostByVehicle(vehicle.id);
+    final maintCost =
+        await maintenanceRepo.getTotalMaintenanceCostByVehicle(vehicle.id);
     final fuelCost = await getFuelCost(vehicle.id);
 
     final rentals = await getRentals(vehicle.id);
@@ -312,6 +327,7 @@ class VehicleDashboardMetrics {
     );
   }
 
-  static Future<List<VehicleDashboardMetrics>> loadAll(List<Vehicle> vehicles) =>
+  static Future<List<VehicleDashboardMetrics>> loadAll(
+          List<Vehicle> vehicles) =>
       Future.wait(vehicles.map(load));
 }

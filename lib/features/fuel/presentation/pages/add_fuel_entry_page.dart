@@ -1,6 +1,7 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform, kIsWeb;
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, defaultTargetPlatform, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -45,14 +46,17 @@ class AddFuelEntryPage extends StatefulWidget {
 
 class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
   final _formKey = GlobalKey<FormState>();
-  late final TextInputType _fuelNumericKeyboard = _fuelEntryKeyboardTypeForPlatform();
+  late final TextInputType _fuelNumericKeyboard =
+      _fuelEntryKeyboardTypeForPlatform();
   final _tripKmCtrl = TextEditingController();
   final _odometerCtrl = TextEditingController();
   final _litersCtrl = TextEditingController();
   final _totalPaidCtrl = TextEditingController();
   final _costPerLiterCtrl = TextEditingController();
+
   /// Optional override of the tank capacity on a full-tank fill.
   final _fullTankLitersCtrl = TextEditingController();
+
   /// Optional fuel gauge % after a partial fill (enables estimated consumption).
   final _fuelLevelCtrl = TextEditingController();
   final _notesCtrl = TextEditingController();
@@ -349,9 +353,8 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
                 tankCapacityLiters: widget.vehicle.tankCapacityLiters,
                 lastRefillLiters: _lastFuelEntry?.liters,
                 colors: colors,
-                baselineOdometer: _isFirstFuelLog
-                    ? null
-                    : widget.vehicle.currentOdometer,
+                baselineOdometer:
+                    _isFirstFuelLog ? null : widget.vehicle.currentOdometer,
               ),
             ],
             const SizedBox(height: 20),
@@ -372,7 +375,8 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
                 enableSuggestions: false,
                 smartDashesType: SmartDashesType.disabled,
                 smartQuotesType: SmartQuotesType.disabled,
-                spellCheckConfiguration: const SpellCheckConfiguration.disabled(),
+                spellCheckConfiguration:
+                    const SpellCheckConfiguration.disabled(),
                 enableIMEPersonalizedLearning: false,
                 inputFormatters: _fuelNumericInputFormatters,
                 decoration: InputDecoration(
@@ -403,7 +407,8 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
                 enableSuggestions: false,
                 smartDashesType: SmartDashesType.disabled,
                 smartQuotesType: SmartQuotesType.disabled,
-                spellCheckConfiguration: const SpellCheckConfiguration.disabled(),
+                spellCheckConfiguration:
+                    const SpellCheckConfiguration.disabled(),
                 enableIMEPersonalizedLearning: false,
                 inputFormatters: _fuelNumericInputFormatters,
                 decoration: const InputDecoration(
@@ -413,7 +418,8 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
                   suffixText: 'km',
                 ),
                 validator: (v) {
-                  if (v == null || v.isEmpty) return 'Enter distance since last fill';
+                  if (v == null || v.isEmpty)
+                    return 'Enter distance since last fill';
                   final n = double.tryParse(v);
                   if (n == null || n <= 0) return 'Enter a positive distance';
                   return null;
@@ -451,7 +457,8 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
                 enableSuggestions: false,
                 smartDashesType: SmartDashesType.disabled,
                 smartQuotesType: SmartQuotesType.disabled,
-                spellCheckConfiguration: const SpellCheckConfiguration.disabled(),
+                spellCheckConfiguration:
+                    const SpellCheckConfiguration.disabled(),
                 enableIMEPersonalizedLearning: false,
                 inputFormatters: _fuelNumericInputFormatters,
                 decoration: const InputDecoration(
@@ -493,7 +500,8 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
                 ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
-                  side: BorderSide(color: theme.dividerColor.withValues(alpha: 0.35)),
+                  side: BorderSide(
+                      color: theme.dividerColor.withValues(alpha: 0.35)),
                 ),
               ),
             ),
@@ -602,7 +610,8 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
                   enableSuggestions: false,
                   smartDashesType: SmartDashesType.disabled,
                   smartQuotesType: SmartQuotesType.disabled,
-                  spellCheckConfiguration: const SpellCheckConfiguration.disabled(),
+                  spellCheckConfiguration:
+                      const SpellCheckConfiguration.disabled(),
                   enableIMEPersonalizedLearning: false,
                   inputFormatters: _fuelNumericInputFormatters,
                   decoration: InputDecoration(
@@ -636,7 +645,8 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
                   enableSuggestions: false,
                   smartDashesType: SmartDashesType.disabled,
                   smartQuotesType: SmartQuotesType.disabled,
-                  spellCheckConfiguration: const SpellCheckConfiguration.disabled(),
+                  spellCheckConfiguration:
+                      const SpellCheckConfiguration.disabled(),
                   enableIMEPersonalizedLearning: false,
                   inputFormatters: _fuelNumericInputFormatters,
                   decoration: const InputDecoration(
@@ -689,8 +699,7 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
                 decoration: const InputDecoration(
                   labelText: 'Fuel level after fill (optional)',
                   hintText: 'Gauge reading, e.g. 75',
-                  helperText:
-                      'Lets mileage be estimated without a full tank',
+                  helperText: 'Lets mileage be estimated without a full tank',
                   prefixIcon: Icon(Icons.speed_outlined),
                   suffixText: '%',
                 ),
@@ -968,7 +977,6 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
     setState(() => _isSaving = true);
 
     try {
-
       final double odometer;
       final double? distanceDriven;
       final double? tripDistance;

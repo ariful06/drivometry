@@ -38,7 +38,7 @@ class FuelCubit extends Cubit<FuelState> {
     emit(const FuelLoading());
     _subscription?.cancel();
     _subscription = _watchFuelEntries(vehicleId).listen(
-          (entries) async {
+      (entries) async {
         final total = await _getTotalCost(vehicleId);
         emit(FuelLoaded(entries: entries, totalCost: total));
       },
