@@ -7,8 +7,10 @@
 // see docs/ARCHITECTURE.md.
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:get_it/get_it.dart';
 import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tzl;
 
 import 'core/database/hive_storage.dart';
 import 'core/services/performance_service.dart';
@@ -50,6 +52,12 @@ final sl = GetIt.instance;
 
 Future<void> initDependencies() async {
   tz.initializeTimeZones();
+  try {
+    final zone = await FlutterTimezone.getLocalTimezone();
+    tzl.setLocalLocation(tzl.getLocation(zone.identifier));
+  } catch (_) {
+    // Fall back to UTC if the device zone is unknown.
+  }
   await initHive();
   final notificationsPlugin = FlutterLocalNotificationsPlugin();
   sl.registerSingleton<FlutterLocalNotificationsPlugin>(notificationsPlugin);
