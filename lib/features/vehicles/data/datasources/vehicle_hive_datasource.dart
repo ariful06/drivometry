@@ -44,6 +44,18 @@ class VehicleHiveDataSource implements VehicleLocalDataSource {
   @override
   Future<void> deleteVehicle(String id) async {
     await _box.delete(id);
+    for (final related in [
+      fuelEntriesBox(),
+      maintenanceEntriesBox(),
+      partReplacementsBox(),
+      rentalEntriesBox(),
+    ]) {
+      final keys = related.keys.where((key) {
+        final v = related.get(key);
+        return v is Map && v['vehicle_id'] == id;
+      }).toList();
+      await related.deleteAll(keys);
+    }
   }
 
   @override
