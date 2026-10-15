@@ -1,4 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../expenses/domain/entities/expense.dart';
+import '../../../expenses/domain/repositories/expense_repository.dart';
 import '../../../fuel/domain/repositories/fuel_repository.dart';
 import '../../../fuel/domain/services/fuel_consumption_calculator.dart';
 import '../../../maintenance/domain/repositories/maintenance_repository.dart';
@@ -11,14 +13,17 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
     required FuelRepository fuelRepository,
     required MaintenanceRepository maintenanceRepository,
     required VehicleRepository vehicleRepository,
+    required ExpenseRepository expenseRepository,
   })  : _fuelRepo = fuelRepository,
         _maintenanceRepo = maintenanceRepository,
         _vehicleRepo = vehicleRepository,
+        _expenseRepo = expenseRepository,
         super(const AnalyticsInitial());
 
   final FuelRepository _fuelRepo;
   final MaintenanceRepository _maintenanceRepo;
   final VehicleRepository _vehicleRepo;
+  final ExpenseRepository _expenseRepo;
 
   Future<void> loadAnalytics(
       {required String period, String? vehicleId}) async {
@@ -27,6 +32,7 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
       final now = DateTime.now();
       final range = _getDateRange(period, now);
       final vehicles = await _vehicleRepo.getAllVehicles();
+      final allExpenses = await _expenseRepo.getAll();
 
       final vehicleAnalytics = <VehicleAnalytics>[];
       for (final vehicle in vehicles) {
@@ -36,6 +42,10 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
         final maintenanceCost =
             await _maintenanceRepo.getTotalMaintenanceCostByVehicleInRange(
                 vehicle.id, range.from, range.to);
+        final otherCost = allExpenses
+            .where((e) => e.vehicleId == vehicle.id && _inRange(e.date, range))
+            .fold<double>(0, (sum, e) => sum + e.amount);
+        final totalCost = fuelCost + maintenanceCost + otherCost;
         final fuelEntries = await _fuelRepo.getFuelEntriesByVehicle(vehicle.id);
         final entriesInRange =
             fuelEntries.where((entry) => _inRange(entry.date, range)).toList();
@@ -64,16 +74,16 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
           vehicleName: vehicle.name,
           fuelCost: fuelCost,
           maintenanceCost: maintenanceCost,
-          totalCost: fuelCost + maintenanceCost,
+          otherCost: otherCost,
+          totalCost: totalCost,
           totalDistanceKm: totalDistance,
           averageEfficiency: avgEfficiency,
-          costPerKm: totalDistance > 0
-              ? (fuelCost + maintenanceCost) / totalDistance
-              : null,
+          costPerKm: totalDistance > 0 ? totalCost / totalDistance : null,
         ));
       }
 
-      final monthlyData = await _buildMonthlyBreakdown(vehicleId, now);
+      final monthlyData =
+          await _buildMonthlyBreakdown(vehicleId, now, allExpenses);
       final totalFuel = vehicleAnalytics.fold<double>(
         0,
         (runningFuelSum, vehicleMetricRow) =>
@@ -84,13 +94,18 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
         (runningMaintenanceSum, vehicleMetricRow) =>
             runningMaintenanceSum + vehicleMetricRow.maintenanceCost,
       );
+      final totalOther = vehicleAnalytics.fold<double>(
+        0,
+        (sum, vehicleMetricRow) => sum + vehicleMetricRow.otherCost,
+      );
 
       emit(AnalyticsLoaded(
         period: period,
         vehicleAnalytics: vehicleAnalytics,
         totalFuelCost: totalFuel,
         totalMaintenanceCost: totalMaintenance,
-        totalCost: totalFuel + totalMaintenance,
+        totalOtherCost: totalOther,
+        totalCost: totalFuel + totalMaintenance + totalOther,
         monthlyBreakdown: monthlyData,
         dateRange: range,
       ));
@@ -122,6 +137,7 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
   Future<List<MonthlyBreakdown>> _buildMonthlyBreakdown(
     String? vehicleId,
     DateTime now,
+    List<Expense> allExpenses,
   ) async {
     final result = <MonthlyBreakdown>[];
     for (var monthsBackIndex = 5; monthsBackIndex >= 0; monthsBackIndex--) {
@@ -140,10 +156,16 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
         maintenanceCost = await _maintenanceRepo.getTotalMaintenanceCostInRange(
             month, monthEnd);
       }
+      final monthRange = DateRange(from: month, to: monthEnd);
+      final otherCost = allExpenses
+          .where((e) => vehicleId == null || e.vehicleId == vehicleId)
+          .where((e) => _inRange(e.date, monthRange))
+          .fold<double>(0, (sum, e) => sum + e.amount);
       result.add(MonthlyBreakdown(
         month: month,
         fuelCost: fuelCost,
         maintenanceCost: maintenanceCost,
+        otherCost: otherCost,
       ));
     }
     return result;

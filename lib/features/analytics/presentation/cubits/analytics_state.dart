@@ -12,6 +12,7 @@ class VehicleAnalytics {
     required this.vehicleName,
     required this.fuelCost,
     required this.maintenanceCost,
+    required this.otherCost,
     required this.totalCost,
     required this.totalDistanceKm,
     this.averageEfficiency,
@@ -21,6 +22,9 @@ class VehicleAnalytics {
   final String vehicleName;
   final double fuelCost;
   final double maintenanceCost;
+
+  /// General expenses (insurance, tax, parking, ...).
+  final double otherCost;
   final double totalCost;
   final double totalDistanceKm;
   final double? averageEfficiency;
@@ -32,11 +36,13 @@ class MonthlyBreakdown {
     required this.month,
     required this.fuelCost,
     required this.maintenanceCost,
+    required this.otherCost,
   });
   final DateTime month;
   final double fuelCost;
   final double maintenanceCost;
-  double get totalSpend => fuelCost + maintenanceCost;
+  final double otherCost;
+  double get totalSpend => fuelCost + maintenanceCost + otherCost;
 }
 
 sealed class AnalyticsState {
@@ -57,6 +63,7 @@ class AnalyticsLoaded extends AnalyticsState {
     required this.vehicleAnalytics,
     required this.totalFuelCost,
     required this.totalMaintenanceCost,
+    required this.totalOtherCost,
     required this.totalCost,
     required this.monthlyBreakdown,
     required this.dateRange,
@@ -65,8 +72,9 @@ class AnalyticsLoaded extends AnalyticsState {
   final List<VehicleAnalytics> vehicleAnalytics;
   final double totalFuelCost;
   final double totalMaintenanceCost;
+  final double totalOtherCost;
 
-  /// Total cost (fuel + maintenance).
+  /// Total cost (fuel + maintenance + other expenses).
   final double totalCost;
   final List<MonthlyBreakdown> monthlyBreakdown;
   final DateRange dateRange;
