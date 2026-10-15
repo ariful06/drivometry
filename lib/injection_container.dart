@@ -203,6 +203,7 @@ Future<void> initDependencies() async {
       maintenanceRepository: sl<MaintenanceRepository>(),
       vehicleRepository: sl<VehicleRepository>(),
       expenseRepository: sl<ExpenseRepository>(),
+      partRepository: sl<PartReplacementRepository>(),
     ),
   );
 

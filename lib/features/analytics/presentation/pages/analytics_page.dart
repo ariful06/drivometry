@@ -9,6 +9,9 @@ import '../../../../core/widgets/app_widgets.dart';
 import '../../../../injection_container.dart';
 import '../cubits/analytics_cubit.dart';
 
+/// Distinct from the parts colour so 'Parts' and 'Other' read apart.
+const _otherColor = Color(0xFF7E57C2);
+
 class AnalyticsPage extends StatelessWidget {
   const AnalyticsPage({super.key});
 
@@ -67,6 +70,7 @@ class _AnalyticsViewState extends State<_AnalyticsView> {
                     :final vehicleAnalytics,
                     :final totalFuelCost,
                     :final totalMaintenanceCost,
+                    :final totalPartsCost,
                     :final totalOtherCost,
                     :final totalCost,
                     :final monthlyBreakdown,
@@ -84,6 +88,7 @@ class _AnalyticsViewState extends State<_AnalyticsView> {
                               _AnalyticsOverview(
                                 totalFuel: totalFuelCost,
                                 totalMaintenance: totalMaintenanceCost,
+                                totalParts: totalPartsCost,
                                 totalOther: totalOtherCost,
                                 totalCost: totalCost,
                               ),
@@ -94,6 +99,7 @@ class _AnalyticsViewState extends State<_AnalyticsView> {
                                 _ExpenseBreakdownPie(
                                   fuelCost: totalFuelCost,
                                   maintenanceCost: totalMaintenanceCost,
+                                  partsCost: totalPartsCost,
                                   otherCost: totalOtherCost,
                                 ),
                               if (totalCost > 0) const SizedBox(height: 20),
@@ -122,11 +128,13 @@ class _AnalyticsOverview extends StatelessWidget {
   const _AnalyticsOverview({
     required this.totalFuel,
     required this.totalMaintenance,
+    required this.totalParts,
     required this.totalOther,
     required this.totalCost,
   });
   final double totalFuel;
   final double totalMaintenance;
+  final double totalParts;
   final double totalOther;
   final double totalCost;
 
@@ -146,7 +154,7 @@ class _AnalyticsOverview extends StatelessWidget {
               end: Alignment.bottomRight,
               colors: [
                 colors.fuelColor.withValues(alpha: 0.92),
-                colors.partsColor.withValues(alpha: 0.88),
+                _otherColor.withValues(alpha: 0.88),
                 colors.maintenanceColor.withValues(alpha: 0.9),
               ],
             ),
@@ -183,7 +191,7 @@ class _AnalyticsOverview extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                'Fuel + maintenance + other expenses in this period.',
+                'Fuel, maintenance, parts and other expenses in this period.',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.88),
                   fontSize: 13,
@@ -215,12 +223,28 @@ class _AnalyticsOverview extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 8),
-        StatCard(
-          label: 'Other expenses',
-          subtitle: 'Insurance, tax, parking, tolls…',
-          value: Formatters.formatCurrency(totalOther),
-          icon: Icons.receipt_long_outlined,
-          color: colors.partsColor,
+        Row(
+          children: [
+            Expanded(
+              child: StatCard(
+                label: 'Parts',
+                subtitle: 'Bought in period',
+                value: Formatters.formatCurrency(totalParts),
+                icon: Icons.settings_suggest_outlined,
+                color: colors.partsColor,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: StatCard(
+                label: 'Other expenses',
+                subtitle: 'Insurance, tax…',
+                value: Formatters.formatCurrency(totalOther),
+                icon: Icons.receipt_long_outlined,
+                color: _otherColor,
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -239,6 +263,7 @@ class _MonthlyTrendChart extends StatelessWidget {
         maximumMonthlyStackHeight,
         monthBreakdownRow.fuelCost,
         monthBreakdownRow.maintenanceCost,
+        monthBreakdownRow.partsCost,
         monthBreakdownRow.otherCost,
       ].reduce(
         (greater, candidate) => candidate > greater ? candidate : greater,
@@ -309,8 +334,17 @@ class _MonthlyTrendChart extends StatelessWidget {
                         ),
                       ),
                       BarChartRodData(
-                        toY: monthlyBreakdown.otherCost,
+                        toY: monthlyBreakdown.partsCost,
                         color: colors.partsColor,
+                        width: 7,
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(3),
+                          topRight: Radius.circular(3),
+                        ),
+                      ),
+                      BarChartRodData(
+                        toY: monthlyBreakdown.otherCost,
+                        color: _otherColor,
                         width: 7,
                         borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(3),
@@ -362,7 +396,8 @@ class _MonthlyTrendChart extends StatelessWidget {
             children: [
               _Legend(color: colors.fuelColor, label: 'Fuel'),
               _Legend(color: colors.maintenanceColor, label: 'Maintenance'),
-              _Legend(color: colors.partsColor, label: 'Other'),
+              _Legend(color: colors.partsColor, label: 'Parts'),
+              _Legend(color: _otherColor, label: 'Other'),
             ],
           ),
         ],
@@ -421,7 +456,7 @@ class _CostByVehicleChart extends StatelessWidget {
                   .titleSmall
                   ?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 4),
-          Text('Fuel, maintenance and other expenses per vehicle',
+          Text('Fuel, maintenance, parts and other per vehicle',
               style: Theme.of(context)
                   .textTheme
                   .bodySmall
@@ -454,8 +489,16 @@ class _CostByVehicleChart extends StatelessWidget {
                                 colors.maintenanceColor),
                             BarChartRodStackItem(
                                 data[i].fuelCost + data[i].maintenanceCost,
-                                data[i].totalCost,
+                                data[i].fuelCost +
+                                    data[i].maintenanceCost +
+                                    data[i].partsCost,
                                 colors.partsColor),
+                            BarChartRodStackItem(
+                                data[i].fuelCost +
+                                    data[i].maintenanceCost +
+                                    data[i].partsCost,
+                                data[i].totalCost,
+                                _otherColor),
                           ],
                         ),
                       ],
@@ -507,7 +550,8 @@ class _CostByVehicleChart extends StatelessWidget {
             children: [
               _Legend(color: colors.fuelColor, label: 'Fuel'),
               _Legend(color: colors.maintenanceColor, label: 'Maintenance'),
-              _Legend(color: colors.partsColor, label: 'Other'),
+              _Legend(color: colors.partsColor, label: 'Parts'),
+              _Legend(color: _otherColor, label: 'Other'),
             ],
           ),
         ],
@@ -520,15 +564,17 @@ class _ExpenseBreakdownPie extends StatelessWidget {
   const _ExpenseBreakdownPie(
       {required this.fuelCost,
       required this.maintenanceCost,
+      required this.partsCost,
       required this.otherCost});
   final double fuelCost;
   final double maintenanceCost;
+  final double partsCost;
   final double otherCost;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
-    final total = fuelCost + maintenanceCost + otherCost;
+    final total = fuelCost + maintenanceCost + partsCost + otherCost;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -573,10 +619,22 @@ class _ExpenseBreakdownPie extends StatelessWidget {
                           fontSize: 12),
                       radius: 55,
                     ),
+                    if (partsCost > 0)
+                      PieChartSectionData(
+                        value: partsCost,
+                        color: colors.partsColor,
+                        title:
+                            '${(partsCost / total * 100).toStringAsFixed(0)}%',
+                        titleStyle: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12),
+                        radius: 55,
+                      ),
                     if (otherCost > 0)
                       PieChartSectionData(
                         value: otherCost,
-                        color: colors.partsColor,
+                        color: _otherColor,
                         title:
                             '${(otherCost / total * 100).toStringAsFixed(0)}%',
                         titleStyle: const TextStyle(
@@ -606,6 +664,11 @@ class _ExpenseBreakdownPie extends StatelessWidget {
                     const SizedBox(height: 12),
                     _PieLegendItem(
                         color: colors.partsColor,
+                        label: 'Parts',
+                        value: Formatters.formatCurrency(partsCost)),
+                    const SizedBox(height: 12),
+                    _PieLegendItem(
+                        color: _otherColor,
                         label: 'Other expenses',
                         value: Formatters.formatCurrency(otherCost)),
                   ],
@@ -688,6 +751,7 @@ class _VehicleAnalyticsCard extends StatelessWidget {
             _CostSplitBar(
                 fuelCost: data.fuelCost,
                 maintenanceCost: data.maintenanceCost,
+                partsCost: data.partsCost,
                 otherCost: data.otherCost),
             const SizedBox(height: 12),
           ],
@@ -702,9 +766,14 @@ class _VehicleAnalyticsCard extends StatelessWidget {
             valueColor: colors.maintenanceColor,
           ),
           InfoRow(
+            label: 'Parts',
+            value: Formatters.formatCurrency(data.partsCost),
+            valueColor: colors.partsColor,
+          ),
+          InfoRow(
             label: 'Other expenses',
             value: Formatters.formatCurrency(data.otherCost),
-            valueColor: colors.partsColor,
+            valueColor: _otherColor,
           ),
           InfoRow(
             label: 'Total cost',
@@ -735,10 +804,12 @@ class _CostSplitBar extends StatelessWidget {
   const _CostSplitBar({
     required this.fuelCost,
     required this.maintenanceCost,
+    required this.partsCost,
     required this.otherCost,
   });
   final double fuelCost;
   final double maintenanceCost;
+  final double partsCost;
   final double otherCost;
 
   @override
@@ -746,6 +817,7 @@ class _CostSplitBar extends StatelessWidget {
     final colors = Theme.of(context).extension<AppColors>()!;
     final fuelFlex = (fuelCost * 1000).round();
     final maintFlex = (maintenanceCost * 1000).round();
+    final partsFlex = (partsCost * 1000).round();
     final otherFlex = (otherCost * 1000).round();
     return ClipRRect(
       borderRadius: BorderRadius.circular(6),
@@ -760,9 +832,11 @@ class _CostSplitBar extends StatelessWidget {
               Expanded(
                   flex: maintFlex,
                   child: ColoredBox(color: colors.maintenanceColor)),
-            if (otherFlex > 0)
+            if (partsFlex > 0)
               Expanded(
-                  flex: otherFlex, child: ColoredBox(color: colors.partsColor)),
+                  flex: partsFlex, child: ColoredBox(color: colors.partsColor)),
+            if (otherFlex > 0)
+              Expanded(flex: otherFlex, child: ColoredBox(color: _otherColor)),
           ],
         ),
       ),
