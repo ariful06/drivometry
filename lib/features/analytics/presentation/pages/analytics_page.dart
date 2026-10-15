@@ -68,8 +68,6 @@ class _AnalyticsViewState extends State<_AnalyticsView> {
                     :final totalFuelCost,
                     :final totalMaintenanceCost,
                     :final totalCost,
-                    :final totalRentalBillable,
-                    :final totalRentalDue,
                     :final monthlyBreakdown,
                   ) =>
                     vehicleAnalytics.isEmpty
@@ -77,7 +75,7 @@ class _AnalyticsViewState extends State<_AnalyticsView> {
                             icon: Icons.bar_chart_outlined,
                             title: 'No Data Yet',
                             subtitle:
-                                'Add vehicles, then log fuel, maintenance, or rentals.',
+                                'Add vehicles, then log fuel or maintenance.',
                           )
                         : ListView(
                             padding: const EdgeInsets.all(16),
@@ -85,9 +83,7 @@ class _AnalyticsViewState extends State<_AnalyticsView> {
                               _AnalyticsOverview(
                                 totalFuel: totalFuelCost,
                                 totalMaintenance: totalMaintenanceCost,
-                                totalSpend: totalCost,
-                                totalRentalBillable: totalRentalBillable,
-                                totalRentalDue: totalRentalDue,
+                                totalCost: totalCost,
                               ),
                               const SizedBox(height: 20),
                               _MonthlyTrendChart(data: monthlyBreakdown),
@@ -98,13 +94,10 @@ class _AnalyticsViewState extends State<_AnalyticsView> {
                                   maintenanceCost: totalMaintenanceCost,
                                 ),
                               if (totalCost > 0) const SizedBox(height: 20),
-                              if (totalRentalBillable > 0 || totalRentalDue > 0)
-                                _RentalSnapshotCard(
-                                  rentalBillable: totalRentalBillable,
-                                  rentalDue: totalRentalDue,
-                                  operatingSpend: totalCost,
-                                ),
-                              const SizedBox(height: 20),
+                              if (vehicleAnalytics.length > 1 && totalCost > 0)
+                                _CostByVehicleChart(data: vehicleAnalytics),
+                              if (vehicleAnalytics.length > 1 && totalCost > 0)
+                                const SizedBox(height: 20),
                               const SectionHeader(
                                   title: 'Per Vehicle Breakdown'),
                               ...vehicleAnalytics
@@ -126,21 +119,15 @@ class _AnalyticsOverview extends StatelessWidget {
   const _AnalyticsOverview({
     required this.totalFuel,
     required this.totalMaintenance,
-    required this.totalSpend,
-    required this.totalRentalBillable,
-    required this.totalRentalDue,
+    required this.totalCost,
   });
   final double totalFuel;
   final double totalMaintenance;
-  final double totalSpend;
-  final double totalRentalBillable;
-  final double totalRentalDue;
+  final double totalCost;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
-    final net = totalRentalBillable - totalSpend;
-    final netPositive = net >= 0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -171,7 +158,7 @@ class _AnalyticsOverview extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Operating snapshot',
+                'Total cost',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.85),
                   fontWeight: FontWeight.w600,
@@ -181,7 +168,7 @@ class _AnalyticsOverview extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                Formatters.formatCurrency(net),
+                Formatters.formatCurrency(totalCost),
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 32,
@@ -191,9 +178,7 @@ class _AnalyticsOverview extends StatelessWidget {
               ),
               const SizedBox(height: 6),
               Text(
-                netPositive
-                    ? 'Rental billings ahead of fuel + maintenance in this period.'
-                    : 'Spend is higher than rental billings in this period.',
+                'Fuel + maintenance in this period.',
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.88),
                   fontSize: 13,
@@ -204,14 +189,15 @@ class _AnalyticsOverview extends StatelessWidget {
                 children: [
                   Expanded(
                     child: _HeroMiniStat(
-                      label: 'Rental (billable)',
-                      value: Formatters.formatCurrency(totalRentalBillable),
+                      label: 'Fuel',
+                      value: Formatters.formatCurrency(totalFuel),
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: _HeroMiniStat(
-                      label: 'Operating spend',
-                      value: Formatters.formatCurrency(totalSpend),
+                      label: 'Maintenance',
+                      value: Formatters.formatCurrency(totalMaintenance),
                     ),
                   ),
                 ],
@@ -237,30 +223,6 @@ class _AnalyticsOverview extends StatelessWidget {
                 value: Formatters.formatCurrency(totalMaintenance),
                 icon: Icons.build_outlined,
                 color: colors.maintenanceColor,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: StatCard(
-                label: 'Rental income',
-                subtitle: 'After customer fuel credits',
-                value: Formatters.formatCurrency(totalRentalBillable),
-                icon: Icons.car_rental_outlined,
-                color: colors.partsColor,
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: StatCard(
-                label: 'Rental due',
-                subtitle: 'Outstanding in period',
-                value: Formatters.formatCurrency(totalRentalDue),
-                icon: Icons.payments_outlined,
-                color: totalRentalDue > 0 ? colors.warning : colors.success,
               ),
             ),
           ],
@@ -313,7 +275,6 @@ class _MonthlyTrendChart extends StatelessWidget {
         maximumMonthlyStackHeight,
         monthBreakdownRow.fuelCost,
         monthBreakdownRow.maintenanceCost,
-        monthBreakdownRow.rentalBillable,
       ].reduce(
         (greater, candidate) => candidate > greater ? candidate : greater,
       );
@@ -343,7 +304,7 @@ class _MonthlyTrendChart extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            'Fuel & maintenance (costs) vs rental billable (income)',
+            'Monthly fuel and maintenance cost',
             style: Theme.of(context)
                 .textTheme
                 .bodySmall
@@ -376,15 +337,6 @@ class _MonthlyTrendChart extends StatelessWidget {
                       BarChartRodData(
                         toY: monthlyBreakdown.maintenanceCost,
                         color: colors.maintenanceColor,
-                        width: 7,
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(3),
-                          topRight: Radius.circular(3),
-                        ),
-                      ),
-                      BarChartRodData(
-                        toY: monthlyBreakdown.rentalBillable,
-                        color: colors.partsColor,
                         width: 7,
                         borderRadius: const BorderRadius.only(
                           topLeft: Radius.circular(3),
@@ -436,7 +388,6 @@ class _MonthlyTrendChart extends StatelessWidget {
             children: [
               _Legend(color: colors.fuelColor, label: 'Fuel'),
               _Legend(color: colors.maintenanceColor, label: 'Maintenance'),
-              _Legend(color: colors.partsColor, label: 'Rental'),
             ],
           ),
         ],
@@ -468,157 +419,117 @@ class _Legend extends StatelessWidget {
   }
 }
 
-class _RentalSnapshotCard extends StatelessWidget {
-  const _RentalSnapshotCard({
-    required this.rentalBillable,
-    required this.rentalDue,
-    required this.operatingSpend,
-  });
-  final double rentalBillable;
-  final double rentalDue;
-  final double operatingSpend;
+class _CostByVehicleChart extends StatelessWidget {
+  const _CostByVehicleChart({required this.data});
+  final List<VehicleAnalytics> data;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
-    final snapshotMaxGaugeValue = [
-      rentalBillable,
-      operatingSpend,
-      1.0,
-    ].reduce(
-      (greater, candidate) => candidate > greater ? candidate : greater,
-    );
-    final rentalFrac = (rentalBillable / snapshotMaxGaugeValue).clamp(0.0, 1.0);
-    final spendFrac = (operatingSpend / snapshotMaxGaugeValue).clamp(0.0, 1.0);
-
+    var maxCost = 0.0;
+    for (final v in data) {
+      if (v.totalCost > maxCost) maxCost = v.totalCost;
+    }
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
+        color: colors.cardBackground,
         borderRadius: BorderRadius.circular(16),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            colors.partsColor.withValues(alpha: 0.12),
-            colors.cardBackground,
-          ],
-        ),
-        border: Border.all(color: colors.partsColor.withValues(alpha: 0.35)),
+        border: Border.all(color: colors.divider.withValues(alpha: 0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(Icons.insights_outlined, color: colors.partsColor, size: 22),
-              const SizedBox(width: 8),
-              Text(
-                'Rental pulse',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleSmall
-                    ?.copyWith(fontWeight: FontWeight.w700),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text(
-            'Billable vs operating spend (same scale)',
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: colors.textSecondary),
-          ),
-          const SizedBox(height: 10),
-          _PulseBar(
-              label: 'Rental billable',
-              value: rentalFrac,
-              color: colors.partsColor,
-              amount: rentalBillable),
-          const SizedBox(height: 10),
-          _PulseBar(
-            label: 'Fuel + maintenance',
-            value: spendFrac,
-            color: colors.maintenanceColor,
-            amount: operatingSpend,
-          ),
-          const SizedBox(height: 14),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: colors.cardBackground,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: colors.divider.withValues(alpha: 0.5)),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  rentalDue > 0
-                      ? Icons.schedule_outlined
-                      : Icons.check_circle_outline,
-                  size: 20,
-                  color: rentalDue > 0 ? colors.warning : colors.success,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    rentalDue > 0
-                        ? 'Collect ${Formatters.formatCurrency(rentalDue)} from open rental balances in this period.'
-                        : 'No outstanding rental balance in this period.',
-                    style: Theme.of(context).textTheme.bodySmall,
+          Text('Cost by vehicle',
+              style: Theme.of(context)
+                  .textTheme
+                  .titleSmall
+                  ?.copyWith(fontWeight: FontWeight.w700)),
+          const SizedBox(height: 4),
+          Text('Fuel and maintenance per vehicle',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: colors.textSecondary)),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 200,
+            child: BarChart(
+              BarChartData(
+                alignment: BarChartAlignment.spaceAround,
+                maxY: maxCost * 1.2,
+                barGroups: [
+                  for (var i = 0; i < data.length; i++)
+                    BarChartGroupData(
+                      x: i,
+                      barRods: [
+                        BarChartRodData(
+                          toY: data[i].totalCost,
+                          width: 18,
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(4),
+                            topRight: Radius.circular(4),
+                          ),
+                          rodStackItems: [
+                            BarChartRodStackItem(
+                                0, data[i].fuelCost, colors.fuelColor),
+                            BarChartRodStackItem(data[i].fuelCost,
+                                data[i].totalCost, colors.maintenanceColor),
+                          ],
+                        ),
+                      ],
+                    ),
+                ],
+                titlesData: FlTitlesData(
+                  leftTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(
+                      sideTitles: SideTitles(showTitles: false)),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, _) {
+                        final i = value.toInt();
+                        if (i < 0 || i >= data.length) {
+                          return const SizedBox.shrink();
+                        }
+                        final name = data[i].vehicleName;
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            name.length > 8 ? '${name.substring(0, 8)}…' : name,
+                            style: TextStyle(
+                                fontSize: 9, color: colors.textSecondary),
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ),
-              ],
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  getDrawingHorizontalLine: (_) => FlLine(
+                      color: colors.divider.withValues(alpha: 0.5),
+                      strokeWidth: 1),
+                ),
+                borderData: FlBorderData(show: false),
+              ),
             ),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 12,
+            children: [
+              _Legend(color: colors.fuelColor, label: 'Fuel'),
+              _Legend(color: colors.maintenanceColor, label: 'Maintenance'),
+            ],
           ),
         ],
       ),
-    );
-  }
-}
-
-class _PulseBar extends StatelessWidget {
-  const _PulseBar({
-    required this.label,
-    required this.value,
-    required this.color,
-    required this.amount,
-  });
-  final String label;
-  final double value;
-  final Color color;
-  final double amount;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-                child: Text(label,
-                    style: Theme.of(context).textTheme.labelMedium)),
-            Text(
-              Formatters.formatCurrency(amount),
-              style: Theme.of(context)
-                  .textTheme
-                  .labelMedium
-                  ?.copyWith(fontWeight: FontWeight.w700),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: LinearProgressIndicator(
-            value: value,
-            minHeight: 8,
-            backgroundColor: color.withValues(alpha: 0.12),
-            valueColor: AlwaysStoppedAnimation<Color>(color),
-          ),
-        ),
-      ],
     );
   }
 }
@@ -771,6 +682,11 @@ class _VehicleAnalyticsCard extends StatelessWidget {
                 ?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 12),
+          if (data.totalCost > 0) ...[
+            _CostSplitBar(
+                fuelCost: data.fuelCost, maintenanceCost: data.maintenanceCost),
+            const SizedBox(height: 12),
+          ],
           InfoRow(
             label: 'Fuel cost',
             value: Formatters.formatCurrency(data.fuelCost),
@@ -781,22 +697,6 @@ class _VehicleAnalyticsCard extends StatelessWidget {
             value: Formatters.formatCurrency(data.maintenanceCost),
             valueColor: colors.maintenanceColor,
           ),
-          InfoRow(
-            label: 'Rental (billable)',
-            value: Formatters.formatCurrency(data.rentalBillable),
-            valueColor: colors.partsColor,
-          ),
-          InfoRow(
-            label: 'Rental due',
-            value: Formatters.formatCurrency(data.rentalDue),
-            valueColor: data.rentalDue > 0 ? colors.warning : colors.success,
-          ),
-          if (data.rentalTripCount > 0)
-            InfoRow(
-              label: 'Rental trips',
-              value:
-                  '${data.rentalTripCount} · ${Formatters.formatDistance(data.rentalTripKm)}',
-            ),
           InfoRow(
             label: 'Total cost',
             value: Formatters.formatCurrency(data.totalCost),
@@ -817,6 +717,36 @@ class _VehicleAnalyticsCard extends StatelessWidget {
             value: Formatters.formatDistance(data.totalDistanceKm),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _CostSplitBar extends StatelessWidget {
+  const _CostSplitBar({required this.fuelCost, required this.maintenanceCost});
+  final double fuelCost;
+  final double maintenanceCost;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).extension<AppColors>()!;
+    final fuelFlex = (fuelCost * 1000).round();
+    final maintFlex = (maintenanceCost * 1000).round();
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(6),
+      child: SizedBox(
+        height: 10,
+        child: Row(
+          children: [
+            if (fuelFlex > 0)
+              Expanded(
+                  flex: fuelFlex, child: ColoredBox(color: colors.fuelColor)),
+            if (maintFlex > 0)
+              Expanded(
+                  flex: maintFlex,
+                  child: ColoredBox(color: colors.maintenanceColor)),
+          ],
+        ),
       ),
     );
   }

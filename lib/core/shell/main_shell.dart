@@ -3,6 +3,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../constants/app_constants.dart';
+
 class MainShell extends StatelessWidget {
   const MainShell({required this.child, super.key});
   final Widget child;
@@ -18,54 +20,48 @@ class MainShell extends StatelessWidget {
   }
 }
 
+class _NavItem {
+  const _NavItem(this.path, this.label, this.icon, this.selectedIcon);
+  final String path;
+  final String label;
+  final IconData icon;
+  final IconData selectedIcon;
+}
+
 class _BottomNav extends StatelessWidget {
   const _BottomNav({required this.currentLocation});
   final String currentLocation;
 
-  /// Order: Dashboard, Rental, Analytics, Reminder
+  static const _items = <_NavItem>[
+    _NavItem(
+        '/vehicles', 'Dashboard', Icons.dashboard_outlined, Icons.dashboard),
+    if (AppConstants.rentalsEnabled)
+      _NavItem(
+          '/rentals', 'Rental', Icons.car_rental_outlined, Icons.car_rental),
+    _NavItem(
+        '/analytics', 'Analytics', Icons.bar_chart_outlined, Icons.bar_chart),
+    _NavItem('/notifications', 'Reminder', Icons.notifications_outlined,
+        Icons.notifications),
+  ];
+
   int get _selectedIndex {
-    if (currentLocation.startsWith('/rentals')) return 1;
-    if (currentLocation.startsWith('/analytics')) return 2;
-    if (currentLocation.startsWith('/notifications')) return 3;
-    return 0;
+    final index =
+        _items.indexWhere((item) => currentLocation.startsWith(item.path));
+    return index < 0 ? 0 : index;
   }
 
   @override
   Widget build(BuildContext context) {
     return NavigationBar(
       selectedIndex: _selectedIndex,
-      onDestinationSelected: (index) {
-        if (index == 0) {
-          context.go('/vehicles');
-        } else if (index == 1) {
-          context.go('/rentals');
-        } else if (index == 2) {
-          context.go('/analytics');
-        } else if (index == 3) {
-          context.go('/notifications');
-        }
-      },
-      destinations: const [
-        NavigationDestination(
-          icon: Icon(Icons.dashboard_outlined),
-          selectedIcon: Icon(Icons.dashboard),
-          label: 'Dashboard',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.car_rental_outlined),
-          selectedIcon: Icon(Icons.car_rental),
-          label: 'Rental',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.bar_chart_outlined),
-          selectedIcon: Icon(Icons.bar_chart),
-          label: 'Analytics',
-        ),
-        NavigationDestination(
-          icon: Icon(Icons.notifications_outlined),
-          selectedIcon: Icon(Icons.notifications),
-          label: 'Reminder',
-        ),
+      onDestinationSelected: (index) => context.go(_items[index].path),
+      destinations: [
+        for (final item in _items)
+          NavigationDestination(
+            icon: Icon(item.icon),
+            selectedIcon: Icon(item.selectedIcon),
+            label: item.label,
+          ),
       ],
     );
   }

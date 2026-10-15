@@ -190,7 +190,6 @@ Future<void> initDependencies() async {
       fuelRepository: sl<FuelRepository>(),
       maintenanceRepository: sl<MaintenanceRepository>(),
       vehicleRepository: sl<VehicleRepository>(),
-      rentalRepository: sl<RentalRepository>(),
     ),
   );
 

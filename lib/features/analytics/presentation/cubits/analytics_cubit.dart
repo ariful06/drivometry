@@ -2,8 +2,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../fuel/domain/repositories/fuel_repository.dart';
 import '../../../fuel/domain/services/fuel_consumption_calculator.dart';
 import '../../../maintenance/domain/repositories/maintenance_repository.dart';
-import '../../../rentals/domain/entities/rental_entry.dart';
-import '../../../rentals/domain/repositories/rental_repository.dart';
 import '../../../vehicles/domain/repositories/vehicle_repository.dart';
 
 part 'analytics_state.dart';
@@ -13,17 +11,14 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
     required FuelRepository fuelRepository,
     required MaintenanceRepository maintenanceRepository,
     required VehicleRepository vehicleRepository,
-    required RentalRepository rentalRepository,
   })  : _fuelRepo = fuelRepository,
         _maintenanceRepo = maintenanceRepository,
         _vehicleRepo = vehicleRepository,
-        _rentalRepo = rentalRepository,
         super(const AnalyticsInitial());
 
   final FuelRepository _fuelRepo;
   final MaintenanceRepository _maintenanceRepo;
   final VehicleRepository _vehicleRepo;
-  final RentalRepository _rentalRepo;
 
   Future<void> loadAnalytics(
       {required String period, String? vehicleId}) async {
@@ -32,7 +27,6 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
       final now = DateTime.now();
       final range = _getDateRange(period, now);
       final vehicles = await _vehicleRepo.getAllVehicles();
-      final allRentals = await _rentalRepo.getAllRentals();
 
       final vehicleAnalytics = <VehicleAnalytics>[];
       for (final vehicle in vehicles) {
@@ -53,32 +47,6 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
           tankCapacityLiters: vehicle.tankCapacityLiters,
         );
 
-        final rentalListForVehicle = allRentals
-            .where(
-              (rentalRow) =>
-                  rentalRow.vehicleId == vehicle.id &&
-                  _inRange(rentalRow.bookingDate, range),
-            )
-            .toList();
-        final rentalBillable = rentalListForVehicle.fold<double>(
-          0,
-          (runningBillableSum, rentalRow) =>
-              runningBillableSum +
-              RentalEntry.billableTripAmount(
-                rentFareAmount: rentalRow.rentFareAmount,
-                fuelCost: rentalRow.fuelCost,
-                customerPaidFuelBill: rentalRow.customerPaidFuelBill,
-              ),
-        );
-        final rentalDue = rentalListForVehicle.fold<double>(
-          0,
-          (runningDueSum, rentalRow) => runningDueSum + rentalRow.dueAmount,
-        );
-        final rentalTripKm = rentalListForVehicle.fold<double>(
-          0,
-          (runningKmSum, rentalRow) => runningKmSum + rentalRow.totalKm,
-        );
-
         vehicleAnalytics.add(VehicleAnalytics(
           vehicleId: vehicle.id,
           vehicleName: vehicle.name,
@@ -86,10 +54,6 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
           maintenanceCost: maintenanceCost,
           totalCost: fuelCost + maintenanceCost,
           totalDistanceKm: totalDistance,
-          rentalBillable: rentalBillable,
-          rentalDue: rentalDue,
-          rentalTripKm: rentalTripKm,
-          rentalTripCount: rentalListForVehicle.length,
           averageEfficiency: avgEfficiency,
           costPerKm: totalDistance > 0
               ? (fuelCost + maintenanceCost) / totalDistance
@@ -97,8 +61,7 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
         ));
       }
 
-      final monthlyData =
-          await _buildMonthlyBreakdown(vehicleId, now, allRentals);
+      final monthlyData = await _buildMonthlyBreakdown(vehicleId, now);
       final totalFuel = vehicleAnalytics.fold<double>(
         0,
         (runningFuelSum, vehicleMetricRow) =>
@@ -109,16 +72,6 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
         (runningMaintenanceSum, vehicleMetricRow) =>
             runningMaintenanceSum + vehicleMetricRow.maintenanceCost,
       );
-      final totalRentalBillable = vehicleAnalytics.fold<double>(
-        0,
-        (runningRentalSum, vehicleMetricRow) =>
-            runningRentalSum + vehicleMetricRow.rentalBillable,
-      );
-      final totalRentalDue = vehicleAnalytics.fold<double>(
-        0,
-        (runningDueSum, vehicleMetricRow) =>
-            runningDueSum + vehicleMetricRow.rentalDue,
-      );
 
       emit(AnalyticsLoaded(
         period: period,
@@ -126,21 +79,12 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
         totalFuelCost: totalFuel,
         totalMaintenanceCost: totalMaintenance,
         totalCost: totalFuel + totalMaintenance,
-        totalRentalBillable: totalRentalBillable,
-        totalRentalDue: totalRentalDue,
         monthlyBreakdown: monthlyData,
         dateRange: range,
       ));
     } catch (error) {
       emit(AnalyticsError(error.toString()));
     }
-  }
-
-  bool _inRange(DateTime bookingDate, DateRange range) {
-    final day = DateTime(bookingDate.year, bookingDate.month, bookingDate.day);
-    final from = DateTime(range.from.year, range.from.month, range.from.day);
-    final to = DateTime(range.to.year, range.to.month, range.to.day);
-    return !day.isBefore(from) && !day.isAfter(to);
   }
 
   DateRange _getDateRange(String period, DateTime now) {
@@ -159,7 +103,6 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
   Future<List<MonthlyBreakdown>> _buildMonthlyBreakdown(
     String? vehicleId,
     DateTime now,
-    List<RentalEntry> allRentals,
   ) async {
     final result = <MonthlyBreakdown>[];
     for (var monthsBackIndex = 5; monthsBackIndex >= 0; monthsBackIndex--) {
@@ -178,25 +121,10 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
         maintenanceCost = await _maintenanceRepo.getTotalMaintenanceCostInRange(
             month, monthEnd);
       }
-      final range = DateRange(from: month, to: monthEnd);
-      final rentalBillable = allRentals
-          .where((rental) => vehicleId == null || rental.vehicleId == vehicleId)
-          .where((rental) => _inRange(rental.bookingDate, range))
-          .fold<double>(
-            0,
-            (runningBillableSum, rentalRow) =>
-                runningBillableSum +
-                RentalEntry.billableTripAmount(
-                  rentFareAmount: rentalRow.rentFareAmount,
-                  fuelCost: rentalRow.fuelCost,
-                  customerPaidFuelBill: rentalRow.customerPaidFuelBill,
-                ),
-          );
       result.add(MonthlyBreakdown(
         month: month,
         fuelCost: fuelCost,
         maintenanceCost: maintenanceCost,
-        rentalBillable: rentalBillable,
       ));
     }
     return result;
