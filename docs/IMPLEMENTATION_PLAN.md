@@ -107,28 +107,28 @@ Claude cannot switch its own model mid-session, so for implementation either:
 Tick a line (`[x]`) when the ticket's PR is merged into `dev`.
 
 - [x] Audit and plan (this document)
-- [ ] T01 Merge fuel consumption PR and fix dev build
+- [x] T01 Merge fuel consumption PR and fix dev build
 - [x] T02 Add GitHub Actions CI and automated PR review (VRF-5)
 - [ ] T03 Add Hive schema versioning and migration runner
-- [ ] T04 Fix notification time zone and stable notification ids
-- [ ] T05 Cascade-delete vehicle records
+- [x] T04 Fix notification time zone and stable notification ids
+- [x] T05 Cascade-delete vehicle records
 - [ ] T06 Fix analytics period mismatch and cost-per-km
 - [ ] T07 Hide Rentals behind a feature flag and remove duplicated vehicle screen
-- [ ] T08 Settings screen with global currency and units
+- [x] T08 Settings screen with global currency and units
 - [ ] T09 Odometer validation and correction
 - [ ] T10 Edit and delete fuel entries
 - [ ] T11 Fuel entry time, fuel type and station
-- [ ] T12 Fuel statistics — average price, monthly spend, economy trend
+- [x] T12 Fuel statistics — average price, monthly spend, economy trend
 - [ ] T13 Maintenance schedule model (date, distance, combined intervals)
 - [ ] T14 Complete maintenance from schedule (service history)
 - [ ] T15 Edit and delete maintenance entries
-- [ ] T16 Parts lifecycle — install, lifespan, warranty, replace
+- [x] T16 Parts lifecycle — install, lifespan, warranty, replace
 - [ ] T17 Maintenance tab with Parts and Maintenance sub-tabs
 - [ ] T18 Reminder engine with reschedule-on-change
 - [ ] T19 Reminder centre states — snooze, complete, dismiss, history
 - [ ] T20 Custom and document reminders
 - [ ] T21 Notification preferences and advance notice
-- [ ] T22 General expense records
+- [x] T22 General expense records
 - [ ] T23 Expense aggregation rules without double counting
 - [ ] T24 Statistics tab — ranges, charts, global and per-vehicle costs
 - [ ] T25 Export reports (PDF, Excel, CSV) from Settings / drawer
