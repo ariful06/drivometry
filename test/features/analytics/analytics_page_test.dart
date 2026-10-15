@@ -1,6 +1,8 @@
 import 'package:drivometry/core/theme/app_theme.dart';
 import 'package:drivometry/features/analytics/presentation/cubits/analytics_cubit.dart';
 import 'package:drivometry/features/analytics/presentation/pages/analytics_page.dart';
+import 'package:drivometry/features/expenses/domain/entities/expense.dart';
+import 'package:drivometry/features/expenses/domain/repositories/expense_repository.dart';
 import 'package:drivometry/features/fuel/domain/entities/fuel_entry.dart';
 import 'package:drivometry/features/fuel/domain/repositories/fuel_repository.dart';
 import 'package:drivometry/features/maintenance/domain/repositories/maintenance_repository.dart';
@@ -16,6 +18,8 @@ class _MockFuel extends Mock implements FuelRepository {}
 class _MockMaintenance extends Mock implements MaintenanceRepository {}
 
 class _MockVehicles extends Mock implements VehicleRepository {}
+
+class _MockExpenses extends Mock implements ExpenseRepository {}
 
 Vehicle _vehicle(String id, String name) => Vehicle(
       id: id,
@@ -34,11 +38,36 @@ void main() {
   late _MockFuel fuel;
   late _MockMaintenance maintenance;
   late _MockVehicles vehicles;
+  late _MockExpenses expenses;
 
   setUp(() async {
     fuel = _MockFuel();
     maintenance = _MockMaintenance();
     vehicles = _MockVehicles();
+    expenses = _MockExpenses();
+    when(() => expenses.getAll()).thenAnswer((_) async => [
+          Expense(
+            id: 'e1',
+            vehicleId: 'a',
+            date: DateTime.now(),
+            category: ExpenseCategory.insurance,
+            amount: 400,
+          ),
+          Expense(
+            id: 'e2',
+            vehicleId: 'b',
+            date: DateTime.now(),
+            category: ExpenseCategory.parking,
+            amount: 100,
+          ),
+          Expense(
+            id: 'old',
+            vehicleId: 'a',
+            date: DateTime(2001),
+            category: ExpenseCategory.tax,
+            amount: 9999,
+          ),
+        ]);
     when(() => vehicles.getAllVehicles()).thenAnswer(
         (_) async => [_vehicle('a', 'Car A'), _vehicle('b', 'Car B')]);
     when(() => fuel.getFuelEntriesByVehicle(any())).thenAnswer((_) async => []);
@@ -59,6 +88,7 @@ void main() {
           fuelRepository: fuel,
           maintenanceRepository: maintenance,
           vehicleRepository: vehicles,
+          expenseRepository: expenses,
         ));
   });
 
@@ -70,8 +100,10 @@ void main() {
     final state = cubit.state as AnalyticsLoaded;
     expect(state.totalFuelCost, 1500);
     expect(state.totalMaintenanceCost, 500);
-    expect(state.totalCost, 2000);
-    expect(state.vehicleAnalytics.map((v) => v.totalCost), [1200, 800]);
+    expect(state.totalOtherCost, 500); // old 2001 expense is out of range
+    expect(state.totalCost, 2500);
+    expect(state.vehicleAnalytics.map((v) => v.otherCost), [400, 100]);
+    expect(state.vehicleAnalytics.map((v) => v.totalCost), [1600, 900]);
   });
 
   test('cost per km only counts distance driven inside the period', () async {
@@ -94,7 +126,8 @@ void main() {
     await cubit.loadAnalytics(period: 'Monthly', vehicleId: 'a');
     final data = (cubit.state as AnalyticsLoaded).vehicleAnalytics.single;
     expect(data.totalDistanceKm, 100);
-    expect(data.costPerKm, 12);
+    expect(data.costPerKm,
+        16); // (1000 fuel + 200 maintenance + 400 other) / 100 km
   });
 
   testWidgets('shows total, per-vehicle costs and charts', (tester) async {
@@ -113,5 +146,6 @@ void main() {
       expect(find.text(label), findsOneWidget);
     }
     expect(find.textContaining('Rental'), findsNothing);
+    expect(find.text('Other expenses'), findsWidgets);
   });
 }
