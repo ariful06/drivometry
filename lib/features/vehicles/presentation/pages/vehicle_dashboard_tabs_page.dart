@@ -82,6 +82,14 @@ class _VehicleDashboardTabsViewState extends State<_VehicleDashboardTabsView>
         title: Text(_currentVehicle.name),
         actions: [
           IconButton(
+            tooltip: 'Other expenses',
+            icon: const Icon(Icons.receipt_long_outlined),
+            onPressed: () => context.push(
+              '/vehicles/${_currentVehicle.id}/expenses',
+              extra: _currentVehicle,
+            ),
+          ),
+          IconButton(
             tooltip: 'Fuel statistics',
             icon: const Icon(Icons.insights_outlined),
             onPressed: () => context.push(
