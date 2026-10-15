@@ -6,6 +6,8 @@ import 'package:drivometry/features/expenses/domain/repositories/expense_reposit
 import 'package:drivometry/features/fuel/domain/entities/fuel_entry.dart';
 import 'package:drivometry/features/fuel/domain/repositories/fuel_repository.dart';
 import 'package:drivometry/features/maintenance/domain/repositories/maintenance_repository.dart';
+import 'package:drivometry/features/parts/domain/entities/part_replacement.dart';
+import 'package:drivometry/features/parts/domain/repositories/part_replacement_repository.dart';
 import 'package:drivometry/features/vehicles/domain/entities/vehicle.dart';
 import 'package:drivometry/features/vehicles/domain/repositories/vehicle_repository.dart';
 import 'package:drivometry/injection_container.dart';
@@ -20,6 +22,8 @@ class _MockMaintenance extends Mock implements MaintenanceRepository {}
 class _MockVehicles extends Mock implements VehicleRepository {}
 
 class _MockExpenses extends Mock implements ExpenseRepository {}
+
+class _MockParts extends Mock implements PartReplacementRepository {}
 
 Vehicle _vehicle(String id, String name) => Vehicle(
       id: id,
@@ -39,12 +43,30 @@ void main() {
   late _MockMaintenance maintenance;
   late _MockVehicles vehicles;
   late _MockExpenses expenses;
+  late _MockParts parts;
 
   setUp(() async {
     fuel = _MockFuel();
     maintenance = _MockMaintenance();
     vehicles = _MockVehicles();
     expenses = _MockExpenses();
+    parts = _MockParts();
+    PartReplacement part(
+            String id, String vehicle, double? cost, DateTime? installed) =>
+        PartReplacement(
+          id: id,
+          vehicleId: vehicle,
+          partName: 'Part $id',
+          installOdometer: 0,
+          cost: cost,
+          installedAt: installed,
+        );
+    when(() => parts.getByVehicle('a')).thenAnswer((_) async => [
+          part('p1', 'a', 300, DateTime.now()),
+          part('old', 'a', 7777, DateTime(2001)), // outside the period
+          part('nodate', 'a', 5555, null), // undated: not counted
+        ]);
+    when(() => parts.getByVehicle('b')).thenAnswer((_) async => []);
     when(() => expenses.getAll()).thenAnswer((_) async => [
           Expense(
             id: 'e1',
@@ -89,6 +111,7 @@ void main() {
           maintenanceRepository: maintenance,
           vehicleRepository: vehicles,
           expenseRepository: expenses,
+          partRepository: parts,
         ));
   });
 
@@ -101,9 +124,11 @@ void main() {
     expect(state.totalFuelCost, 1500);
     expect(state.totalMaintenanceCost, 500);
     expect(state.totalOtherCost, 500); // old 2001 expense is out of range
-    expect(state.totalCost, 2500);
+    expect(state.totalPartsCost, 300);
+    expect(state.totalCost, 2800);
     expect(state.vehicleAnalytics.map((v) => v.otherCost), [400, 100]);
-    expect(state.vehicleAnalytics.map((v) => v.totalCost), [1600, 900]);
+    expect(state.vehicleAnalytics.map((v) => v.partsCost), [300, 0]);
+    expect(state.vehicleAnalytics.map((v) => v.totalCost), [1900, 900]);
   });
 
   test('cost per km only counts distance driven inside the period', () async {
@@ -126,8 +151,8 @@ void main() {
     await cubit.loadAnalytics(period: 'Monthly', vehicleId: 'a');
     final data = (cubit.state as AnalyticsLoaded).vehicleAnalytics.single;
     expect(data.totalDistanceKm, 100);
-    expect(data.costPerKm,
-        16); // (1000 fuel + 200 maintenance + 400 other) / 100 km
+    // (1000 fuel + 200 maintenance + 300 parts + 400 other) / 100 km
+    expect(data.costPerKm, 19);
   });
 
   testWidgets('shows total, per-vehicle costs and charts', (tester) async {
@@ -147,5 +172,6 @@ void main() {
     }
     expect(find.textContaining('Rental'), findsNothing);
     expect(find.text('Other expenses'), findsWidgets);
+    expect(find.text('Parts'), findsWidgets);
   });
 }

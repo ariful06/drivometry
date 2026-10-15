@@ -7,9 +7,10 @@ Analytics adds the owners together; it never re-derives one from another.
 |---|---|---|
 | Fuel fill | `FuelEntry.totalCost` | Fuel |
 | Service / repair invoice | `MaintenanceEntry.cost` (labour **and** parts on that invoice as one amount) | Maintenance |
+| Standalone part purchase | `PartReplacement.cost`, dated by `installedAt` | Parts |
 | Insurance, registration, tax, parking, toll, wash, other | `Expense.amount` | Other expenses |
 
-- **Total cost** = Fuel + Maintenance + Other expenses, for the selected period
+- **Total cost** = Fuel + Maintenance + Parts + Other expenses, for the selected period
   and vehicle(s). It is never negative: income and rentals are not part of it.
 - **Period** filtering uses each record's own date (fill date, service date,
   expense date), inclusive of both ends.
