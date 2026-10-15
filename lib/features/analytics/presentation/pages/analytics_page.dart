@@ -710,7 +710,7 @@ class _VehicleAnalyticsCard extends StatelessWidget {
           if (data.costPerKm != null)
             InfoRow(
               label: 'Cost per km',
-              value: '৳ ${data.costPerKm!.toStringAsFixed(2)}/km',
+              value: Formatters.formatCostPerDistance(data.costPerKm!),
             ),
           InfoRow(
             label: 'Total distance',
