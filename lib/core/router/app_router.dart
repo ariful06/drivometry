@@ -18,6 +18,7 @@ import '../../features/vehicles/presentation/pages/vehicle_dashboard_page.dart';
 import '../../features/vehicles/presentation/pages/vehicle_details_page.dart';
 import '../../features/vehicles/presentation/pages/vehicles_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
+import '../../features/fuel/presentation/pages/fuel_statistics_page.dart';
 import '../shell/main_shell.dart';
 
 class AppRouter {
@@ -72,6 +73,11 @@ class AppRouter {
               final vehicle = state.extra is Vehicle ? state.extra as Vehicle : null;
               return VehicleDetailsRoutePage(vehicleId: id, vehicle: vehicle);
             },
+          ),
+          GoRoute(
+            path: '/vehicles/:id/fuel-stats',
+            builder: (context, state) =>
+                FuelStatisticsPage(vehicle: state.extra as Vehicle),
           ),
           GoRoute(
             path: '/vehicles/:id',
