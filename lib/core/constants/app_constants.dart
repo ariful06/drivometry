@@ -6,6 +6,10 @@ class AppConstants {
   static const String appName = 'Drivometry';
   static const String appVersion = '1.0.0';
 
+  /// Rentals are hidden for now (next phase). Code and data stay in place;
+  /// flip to true to restore the Rental tab.
+  static const bool rentalsEnabled = false;
+
   // Database
   static const String isarDbName = 'drivometry_db';
   static const int isarSchemaVersion = 1;
