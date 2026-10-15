@@ -1,6 +1,7 @@
 import 'package:drivometry/core/theme/app_theme.dart';
 import 'package:drivometry/features/analytics/presentation/cubits/analytics_cubit.dart';
 import 'package:drivometry/features/analytics/presentation/pages/analytics_page.dart';
+import 'package:drivometry/features/fuel/domain/entities/fuel_entry.dart';
 import 'package:drivometry/features/fuel/domain/repositories/fuel_repository.dart';
 import 'package:drivometry/features/maintenance/domain/repositories/maintenance_repository.dart';
 import 'package:drivometry/features/vehicles/domain/entities/vehicle.dart';
@@ -71,6 +72,29 @@ void main() {
     expect(state.totalMaintenanceCost, 500);
     expect(state.totalCost, 2000);
     expect(state.vehicleAnalytics.map((v) => v.totalCost), [1200, 800]);
+  });
+
+  test('cost per km only counts distance driven inside the period', () async {
+    final now = DateTime.now();
+    FuelEntry entry(String id, DateTime date, double km) => FuelEntry(
+          id: id,
+          vehicleId: 'a',
+          date: date,
+          odometer: 1000,
+          liters: 10,
+          costPerLiter: 100,
+          totalCost: 1000,
+          distanceDriven: km,
+        );
+    when(() => fuel.getFuelEntriesByVehicle('a')).thenAnswer((_) async => [
+          entry('old', DateTime(now.year - 2), 5000),
+          entry('new', now, 100),
+        ]);
+    final cubit = sl<AnalyticsCubit>();
+    await cubit.loadAnalytics(period: 'Monthly', vehicleId: 'a');
+    final data = (cubit.state as AnalyticsLoaded).vehicleAnalytics.single;
+    expect(data.totalDistanceKm, 100);
+    expect(data.costPerKm, 12);
   });
 
   testWidgets('shows total, per-vehicle costs and charts', (tester) async {

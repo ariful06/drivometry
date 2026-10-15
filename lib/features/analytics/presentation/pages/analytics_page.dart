@@ -30,7 +30,7 @@ class _AnalyticsView extends StatefulWidget {
 }
 
 class _AnalyticsViewState extends State<_AnalyticsView> {
-  String _period = AppConstants.periodWeekly;
+  String _period = AppConstants.periodMonthly;
   final _periods = [
     AppConstants.periodWeekly,
     AppConstants.periodMonthly,

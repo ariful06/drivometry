@@ -37,15 +37,27 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
             await _maintenanceRepo.getTotalMaintenanceCostByVehicleInRange(
                 vehicle.id, range.from, range.to);
         final fuelEntries = await _fuelRepo.getFuelEntriesByVehicle(vehicle.id);
-        final totalDistance = fuelEntries.fold<double>(
+        final entriesInRange =
+            fuelEntries.where((entry) => _inRange(entry.date, range)).toList();
+        final totalDistance = entriesInRange.fold<double>(
           0,
           (runningKm, fuelEntryRow) =>
               runningKm + (fuelEntryRow.distanceDriven ?? 0),
         );
-        final avgEfficiency = FuelConsumptionCalculator.averageKmPerLiter(
+        final dateById = {for (final e in fuelEntries) e.id: e.date};
+        var segmentKm = 0.0;
+        var segmentLiters = 0.0;
+        for (final segment in FuelConsumptionCalculator.segments(
           fuelEntries,
           tankCapacityLiters: vehicle.tankCapacityLiters,
-        );
+        )) {
+          final closedOn = dateById[segment.endEntryId];
+          if (closedOn == null || !_inRange(closedOn, range)) continue;
+          segmentKm += segment.distanceKm;
+          segmentLiters += segment.liters;
+        }
+        final avgEfficiency =
+            segmentLiters > 0 ? segmentKm / segmentLiters : null;
 
         vehicleAnalytics.add(VehicleAnalytics(
           vehicleId: vehicle.id,
@@ -85,6 +97,13 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
     } catch (error) {
       emit(AnalyticsError(error.toString()));
     }
+  }
+
+  bool _inRange(DateTime date, DateRange range) {
+    final day = DateTime(date.year, date.month, date.day);
+    final from = DateTime(range.from.year, range.from.month, range.from.day);
+    final to = DateTime(range.to.year, range.to.month, range.to.day);
+    return !day.isBefore(from) && !day.isAfter(to);
   }
 
   DateRange _getDateRange(String period, DateTime now) {
