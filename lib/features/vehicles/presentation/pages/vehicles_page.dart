@@ -46,6 +46,11 @@ class _VehiclesView extends StatelessWidget {
             ),
             onPressed: () => context.read<ThemeCubit>().toggleTheme(),
           ),
+          IconButton(
+            tooltip: 'Settings',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => context.push('/settings'),
+          ),
         ],
       ),
       body: BlocBuilder<VehicleCubit, VehicleState>(

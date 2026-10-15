@@ -17,6 +17,7 @@ import '../../features/vehicles/presentation/pages/add_vehicle_page.dart';
 import '../../features/vehicles/presentation/pages/vehicle_dashboard_page.dart';
 import '../../features/vehicles/presentation/pages/vehicle_details_page.dart';
 import '../../features/vehicles/presentation/pages/vehicles_page.dart';
+import '../../features/settings/presentation/pages/settings_page.dart';
 import '../shell/main_shell.dart';
 
 class AppRouter {
@@ -48,6 +49,10 @@ class AppRouter {
                 builder: (context, state) => const RentalsPage(),
               ),
             ],
+          ),
+          GoRoute(
+            path: '/settings',
+            builder: (context, state) => const SettingsPage(),
           ),
           GoRoute(
             path: '/vehicles/add',
