@@ -1,71 +1,53 @@
 import '../../domain/entities/part_replacement.dart';
 
+/// Map (de)serialisation for [PartReplacement]. Rows written before the
+/// lifecycle fields existed still load: every new key is optional.
 class PartReplacementModel {
-  const PartReplacementModel({
-    required this.id,
-    required this.vehicleId,
-    required this.partName,
-    required this.installOdometer,
-    required this.expectedLifespanKm,
-    this.installedAt,
-    this.cost,
-    this.notes,
-  });
+  const PartReplacementModel(this.entity);
+  final PartReplacement entity;
 
-  final String id;
-  final String vehicleId;
-  final String partName;
-  final double installOdometer;
-  final double expectedLifespanKm;
-  final DateTime? installedAt;
-  final double? cost;
-  final String? notes;
-
-  factory PartReplacementModel.fromMap(Map<String, dynamic> map) =>
-      PartReplacementModel(
-        id: map['id'] as String,
-        vehicleId: map['vehicle_id'] as String,
-        partName: map['part_name'] as String,
-        installOdometer: (map['install_odometer'] as num).toDouble(),
-        expectedLifespanKm: (map['expected_lifespan_km'] as num).toDouble(),
-        installedAt: map['installed_at'] != null
-            ? DateTime.parse(map['installed_at'] as String)
-            : null,
-        cost: map['cost'] != null ? (map['cost'] as num).toDouble() : null,
-        notes: map['notes'] as String?,
-      );
-
-  Map<String, dynamic> toMap() => {
-        'id': id,
-        'vehicle_id': vehicleId,
-        'part_name': partName,
-        'install_odometer': installOdometer,
-        'expected_lifespan_km': expectedLifespanKm,
-        'installed_at': installedAt?.toIso8601String(),
-        'cost': cost,
-        'notes': notes,
-      };
+  String get id => entity.id;
+  double get installOdometer => entity.installOdometer;
 
   factory PartReplacementModel.fromEntity(PartReplacement e) =>
-      PartReplacementModel(
-        id: e.id,
-        vehicleId: e.vehicleId,
-        partName: e.partName,
-        installOdometer: e.installOdometer,
-        expectedLifespanKm: e.expectedLifespanKm,
-        installedAt: e.installedAt,
-        cost: e.cost,
-        notes: e.notes,
-      );
+      PartReplacementModel(e);
 
-  PartReplacement toEntity() => PartReplacement(
-        id: id,
-        vehicleId: vehicleId,
-        partName: partName,
-        installOdometer: installOdometer,
-        expectedLifespanKm: expectedLifespanKm,
-        installedAt: installedAt,
-        cost: cost,
-        notes: notes,
-      );
+  PartReplacement toEntity() => entity;
+
+  factory PartReplacementModel.fromMap(Map<String, dynamic> map) {
+    DateTime? date(String key) =>
+        map[key] != null ? DateTime.parse(map[key] as String) : null;
+    double? number(String key) => (map[key] as num?)?.toDouble();
+    return PartReplacementModel(PartReplacement(
+      id: map['id'] as String,
+      vehicleId: map['vehicle_id'] as String,
+      partName: map['part_name'] as String,
+      category: map['category'] as String?,
+      installOdometer: (map['install_odometer'] as num).toDouble(),
+      expectedLifespanKm: number('expected_lifespan_km'),
+      lifespanMonths: (map['lifespan_months'] as num?)?.toInt(),
+      installedAt: date('installed_at'),
+      cost: number('cost'),
+      warrantyMonths: (map['warranty_months'] as num?)?.toInt(),
+      notes: map['notes'] as String?,
+      replacedAt: date('replaced_at'),
+      replacedById: map['replaced_by_id'] as String?,
+    ));
+  }
+
+  Map<String, dynamic> toMap() => {
+        'id': entity.id,
+        'vehicle_id': entity.vehicleId,
+        'part_name': entity.partName,
+        'category': entity.category,
+        'install_odometer': entity.installOdometer,
+        'expected_lifespan_km': entity.expectedLifespanKm,
+        'lifespan_months': entity.lifespanMonths,
+        'installed_at': entity.installedAt?.toIso8601String(),
+        'cost': entity.cost,
+        'warranty_months': entity.warrantyMonths,
+        'notes': entity.notes,
+        'replaced_at': entity.replacedAt?.toIso8601String(),
+        'replaced_by_id': entity.replacedById,
+      };
 }
