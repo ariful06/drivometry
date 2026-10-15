@@ -21,6 +21,8 @@ import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/fuel/presentation/pages/fuel_statistics_page.dart';
 import '../../features/expenses/presentation/pages/add_expense_page.dart';
 import '../../features/expenses/presentation/pages/expenses_page.dart';
+import '../../features/parts/presentation/pages/add_part_page.dart';
+import '../../features/parts/presentation/pages/parts_page.dart';
 import '../shell/main_shell.dart';
 
 class AppRouter {
@@ -75,6 +77,16 @@ class AppRouter {
               final vehicle = state.extra is Vehicle ? state.extra as Vehicle : null;
               return VehicleDetailsRoutePage(vehicleId: id, vehicle: vehicle);
             },
+          ),
+          GoRoute(
+            path: '/vehicles/:id/parts',
+            builder: (context, state) =>
+                PartsPage(vehicle: state.extra as Vehicle),
+          ),
+          GoRoute(
+            path: '/vehicles/:id/parts/add',
+            builder: (context, state) =>
+                AddPartPage(args: state.extra as AddPartArgs),
           ),
           GoRoute(
             path: '/vehicles/:id/expenses',
