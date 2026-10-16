@@ -96,7 +96,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   decoration: BoxDecoration(
                     color: _index == i
                         ? Theme.of(context).colorScheme.primary
-                        : colors.divider.withOpacity(0.6),
+                        : colors.divider.withValues(alpha: 0.6),
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -125,9 +125,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          _index == _pages.length - 1
-                              ? 'Get started'
-                              : 'Next',
+                          _index == _pages.length - 1 ? 'Get started' : 'Next',
                         ),
                         const SizedBox(width: 6),
                         const Icon(Icons.arrow_forward_rounded, size: 18),
@@ -172,8 +170,8 @@ class _OnboardingSlide extends StatelessWidget {
               shape: BoxShape.circle,
               gradient: LinearGradient(
                 colors: [
-                  colors.fuelColor.withOpacity(0.12),
-                  colors.maintenanceColor.withOpacity(0.12),
+                  colors.fuelColor.withValues(alpha: 0.12),
+                  colors.maintenanceColor.withValues(alpha: 0.12),
                 ],
               ),
             ),
@@ -204,4 +202,3 @@ class _OnboardingSlide extends StatelessWidget {
     );
   }
 }
-

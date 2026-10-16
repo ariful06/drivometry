@@ -97,7 +97,7 @@ class MaintenanceEntryTile extends StatelessWidget {
           color: colors.cardBackground,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: theme.dividerColor.withOpacity(0.4),
+            color: theme.dividerColor.withValues(alpha: 0.4),
           ),
         ),
         child: Material(
@@ -117,7 +117,7 @@ class MaintenanceEntryTile extends StatelessWidget {
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: entryColor.withOpacity(0.12),
+                          color: entryColor.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
@@ -321,13 +321,13 @@ class _NextOdometerChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: isOverdue
-            ? colors.warning.withOpacity(0.15)
-            : colors.maintenanceColor.withOpacity(0.1),
+            ? colors.warning.withValues(alpha: 0.15)
+            : colors.maintenanceColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isOverdue
-              ? colors.warning.withOpacity(0.4)
-              : colors.maintenanceColor.withOpacity(0.3),
+              ? colors.warning.withValues(alpha: 0.4)
+              : colors.maintenanceColor.withValues(alpha: 0.3),
         ),
       ),
       child: Row(
@@ -389,13 +389,13 @@ class _NextRepairChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: isOverdue
-            ? colors.warning.withOpacity(0.15)
-            : colors.maintenanceColor.withOpacity(0.1),
+            ? colors.warning.withValues(alpha: 0.15)
+            : colors.maintenanceColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isOverdue
-              ? colors.warning.withOpacity(0.4)
-              : colors.maintenanceColor.withOpacity(0.3),
+              ? colors.warning.withValues(alpha: 0.4)
+              : colors.maintenanceColor.withValues(alpha: 0.3),
         ),
       ),
       child: Row(

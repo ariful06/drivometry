@@ -214,12 +214,12 @@ class _ModernTabBar extends StatelessWidget {
         color: colors.cardBackground,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: colors.divider.withOpacity(0.6),
+          color: colors.divider.withValues(alpha: 0.6),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: theme.colorScheme.shadow.withOpacity(0.06),
+            color: theme.colorScheme.shadow.withValues(alpha: 0.06),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -337,14 +337,15 @@ class _VehicleHeaderCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: colors.cardBackground,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.divider.withOpacity(0.5)),
+        border: Border.all(color: colors.divider.withValues(alpha: 0.5)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+              color:
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: VehicleTypeIcon(
@@ -538,17 +539,17 @@ class _FuelHeroInsight extends StatelessWidget {
           end: Alignment.bottomRight,
           colors: isDark
               ? [
-                  colors.maintenanceColor.withOpacity(0.18),
-                  colors.maintenanceColor.withOpacity(0.08),
+                  colors.maintenanceColor.withValues(alpha: 0.18),
+                  colors.maintenanceColor.withValues(alpha: 0.08),
                 ]
               : [
-                  colors.maintenanceColor.withOpacity(0.12),
-                  colors.maintenanceColor.withOpacity(0.04),
+                  colors.maintenanceColor.withValues(alpha: 0.12),
+                  colors.maintenanceColor.withValues(alpha: 0.04),
                 ],
         ),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: colors.maintenanceColor.withOpacity(0.25),
+          color: colors.maintenanceColor.withValues(alpha: 0.25),
           width: 1,
         ),
       ),
@@ -583,7 +584,7 @@ class _FuelHeroInsight extends StatelessWidget {
                 'km/L',
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: colors.maintenanceColor.withOpacity(0.9),
+                  color: colors.maintenanceColor.withValues(alpha: 0.9),
                 ),
               ),
             ],
@@ -655,7 +656,7 @@ class _StatPill extends StatelessWidget {
       decoration: BoxDecoration(
         color: colors.cardBackground,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: colors.divider.withOpacity(0.5)),
+        border: Border.all(color: colors.divider.withValues(alpha: 0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

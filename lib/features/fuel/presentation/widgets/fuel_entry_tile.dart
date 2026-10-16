@@ -85,7 +85,7 @@ class FuelEntryTile extends StatelessWidget {
           color: colors.cardBackground,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: theme.dividerColor.withOpacity(0.4),
+            color: theme.dividerColor.withValues(alpha: 0.4),
           ),
         ),
         child: Material(
@@ -198,7 +198,7 @@ class _MetricChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
