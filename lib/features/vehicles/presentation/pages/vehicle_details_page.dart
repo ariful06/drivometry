@@ -12,7 +12,8 @@ import '../../domain/entities/vehicle.dart';
 /// Wrapper that resolves [Vehicle] by id when not passed as [extra].
 class VehicleDetailsRoutePage extends StatelessWidget {
   const VehicleDetailsRoutePage({
-    required this.vehicleId, super.key,
+    required this.vehicleId,
+    super.key,
     this.vehicle,
   });
   final String vehicleId;
@@ -111,7 +112,8 @@ class _VehicleDetailsPageState extends State<VehicleDetailsPage> {
           if (vehicle.tankCapacityLiters != null)
             _DetailRow(
               label: 'Tank capacity',
-              value: '${Formatters.formatNumber(vehicle.tankCapacityLiters!)} L',
+              value:
+                  '${Formatters.formatNumber(vehicle.tankCapacityLiters!)} L',
             ),
           if (vehicle.color != null && vehicle.color!.isNotEmpty)
             _DetailRow(label: 'Color', value: vehicle.color!),
@@ -189,14 +191,15 @@ class _VehicleDetailsHeader extends StatelessWidget {
       decoration: BoxDecoration(
         color: colors.cardBackground,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.divider.withOpacity(0.5)),
+        border: Border.all(color: colors.divider.withValues(alpha: 0.5)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+              color:
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: VehicleTypeIcon(
@@ -213,14 +216,14 @@ class _VehicleDetailsHeader extends StatelessWidget {
                 Text(
                   '${vehicle.make} ${vehicle.model}',
                   style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+                        fontWeight: FontWeight.w700,
+                      ),
                 ),
                 Text(
                   '${vehicle.year} • ${vehicle.licensePlate}',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: colors.textSecondary,
-                  ),
+                        color: colors.textSecondary,
+                      ),
                 ),
               ],
             ),
@@ -231,15 +234,15 @@ class _VehicleDetailsHeader extends StatelessWidget {
               Text(
                 Formatters.formatDistance(vehicle.currentOdometer),
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
+                      fontWeight: FontWeight.w800,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
               ),
               Text(
                 'Odometer',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: colors.textSecondary,
-                ),
+                      color: colors.textSecondary,
+                    ),
               ),
             ],
           ),
@@ -267,17 +270,17 @@ class _DetailRow extends StatelessWidget {
             child: Text(
               label,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: colors.textSecondary,
-                fontWeight: FontWeight.w500,
-              ),
+                    color: colors.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
             ),
           ),
           Expanded(
             child: Text(
               value,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+                    fontWeight: FontWeight.w600,
+                  ),
             ),
           ),
         ],
@@ -305,9 +308,9 @@ class _DocumentImageCard extends StatelessWidget {
             child: Text(
               label,
               style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-                color: colors.textSecondary,
-              ),
+                    fontWeight: FontWeight.w600,
+                    color: colors.textSecondary,
+                  ),
             ),
           ),
           if (file.existsSync())

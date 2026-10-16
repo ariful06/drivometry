@@ -408,7 +408,7 @@ class _RepairTypeOption extends StatelessWidget {
           color: isSelected ? primary : background,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? primary : primary.withOpacity(0.25),
+            color: isSelected ? primary : primary.withValues(alpha: 0.25),
           ),
         ),
         child: Row(
@@ -526,10 +526,10 @@ class _PartChip extends StatelessWidget {
           duration: const Duration(milliseconds: 180),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: selected ? fillColor : fillColor.withOpacity(0.08),
+            color: selected ? fillColor : fillColor.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: selected ? fillColor : fillColor.withOpacity(0.35),
+              color: selected ? fillColor : fillColor.withValues(alpha: 0.35),
               width: selected ? 1.5 : 1,
             ),
           ),
@@ -542,7 +542,7 @@ class _PartChip extends StatelessWidget {
                   child: Icon(
                     Icons.check_circle_rounded,
                     size: 16,
-                    color: Colors.white.withOpacity(0.95),
+                    color: Colors.white.withValues(alpha: 0.95),
                   ),
                 ),
               Text(
@@ -558,7 +558,7 @@ class _PartChip extends StatelessWidget {
                   '· ${lifespanKm!} km',
                   style: theme.textTheme.bodySmall?.copyWith(
                     fontWeight: FontWeight.w500,
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                     fontSize: 11,
                   ),
                 ),

@@ -69,7 +69,8 @@ class _EmptyState extends StatelessWidget {
         children: [
           Icon(Icons.notifications_none_outlined,
               size: 72,
-              color: Theme.of(context).colorScheme.primary.withOpacity(0.3)),
+              color:
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.3)),
           const SizedBox(height: 16),
           Text('No upcoming services',
               style: Theme.of(context)
@@ -83,7 +84,7 @@ class _EmptyState extends StatelessWidget {
                   color: Theme.of(context)
                       .colorScheme
                       .onSurface
-                      .withOpacity(0.5))),
+                      .withValues(alpha: 0.5))),
         ],
       ),
     );
@@ -210,7 +211,7 @@ class _SectionHeader extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
           decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
+              color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(20)),
           child: Text('$count',
               style: TextStyle(
@@ -269,7 +270,7 @@ class _NotificationCard extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                  color: dueColor.withOpacity(0.12),
+                  color: dueColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(12)),
               child: Icon(
                   entry.type == 'parts'
@@ -294,7 +295,7 @@ class _NotificationCard extends StatelessWidget {
                           color: Theme.of(context)
                               .colorScheme
                               .onSurface
-                              .withOpacity(0.6)),
+                              .withValues(alpha: 0.6)),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis),
                   const SizedBox(height: 6),
@@ -324,7 +325,7 @@ class _NotificationCard extends StatelessWidget {
                           color: Theme.of(context)
                               .colorScheme
                               .onSurface
-                              .withOpacity(0.5)),
+                              .withValues(alpha: 0.5)),
                       const SizedBox(width: 4),
                       Text(
                           'At ${NumberFormat("#,###").format(entry.nextServiceOdometer)} km',
@@ -333,7 +334,7 @@ class _NotificationCard extends StatelessWidget {
                               color: Theme.of(context)
                                   .colorScheme
                                   .onSurface
-                                  .withOpacity(0.5))),
+                                  .withValues(alpha: 0.5))),
                     ]),
                   ],
                 ],

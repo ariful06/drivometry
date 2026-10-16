@@ -1310,12 +1310,12 @@ class _FuelContextCard extends StatelessWidget {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: colors.fuelColor.withOpacity(0.2),
+          color: colors.fuelColor.withValues(alpha: 0.2),
           width: 1,
         ),
         boxShadow: [
           BoxShadow(
-            color: colors.fuelColor.withOpacity(0.06),
+            color: colors.fuelColor.withValues(alpha: 0.06),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -1330,7 +1330,7 @@ class _FuelContextCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: colors.fuelColor.withOpacity(0.12),
+                  color: colors.fuelColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
@@ -1441,7 +1441,7 @@ class _FuelStatCell extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -1466,7 +1466,7 @@ class _FuelStatCell extends StatelessWidget {
                 unit,
                 style: theme.textTheme.bodySmall?.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: color.withOpacity(0.9),
+                  color: color.withValues(alpha: 0.9),
                 ),
               ),
             ],
@@ -1499,7 +1499,7 @@ class _FuelContextCardSkeleton extends StatelessWidget {
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: colors.fuelColor.withOpacity(0.15),
+          color: colors.fuelColor.withValues(alpha: 0.15),
           width: 1,
         ),
       ),
@@ -1509,7 +1509,7 @@ class _FuelContextCardSkeleton extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: colors.fuelColor.withOpacity(0.1),
+              color: colors.fuelColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
           ),
@@ -1523,7 +1523,7 @@ class _FuelContextCardSkeleton extends StatelessWidget {
                   height: 12,
                   width: 100,
                   decoration: BoxDecoration(
-                    color: colors.fuelColor.withOpacity(0.15),
+                    color: colors.fuelColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(6),
                   ),
                 ),
@@ -1532,7 +1532,7 @@ class _FuelContextCardSkeleton extends StatelessWidget {
                   height: 10,
                   width: 140,
                   decoration: BoxDecoration(
-                    color: colors.fuelColor.withOpacity(0.1),
+                    color: colors.fuelColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(4),
                   ),
                 ),
@@ -1652,7 +1652,7 @@ class _SummaryRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(

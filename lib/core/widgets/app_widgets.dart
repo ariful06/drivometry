@@ -31,7 +31,11 @@ class SectionHeader extends StatelessWidget {
 
 class StatCard extends StatelessWidget {
   const StatCard({
-    required this.label, required this.value, required this.icon, required this.color, super.key,
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+    super.key,
     this.subtitle,
   });
 
@@ -49,7 +53,7 @@ class StatCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: colors.cardBackground,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.divider.withOpacity(0.5)),
+        border: Border.all(color: colors.divider.withValues(alpha: 0.5)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -59,7 +63,7 @@ class StatCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
+                  color: color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, color: color, size: 18),
@@ -100,7 +104,10 @@ class StatCard extends StatelessWidget {
 
 class EmptyState extends StatelessWidget {
   const EmptyState({
-    required this.icon, required this.title, required this.subtitle, super.key,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    super.key,
     this.action,
   });
 
@@ -121,13 +128,19 @@ class EmptyState extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                color: Theme.of(context)
+                    .colorScheme
+                    .primary
+                    .withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
               child: Icon(
                 icon,
                 size: 48,
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                color: Theme.of(context)
+                    .colorScheme
+                    .primary
+                    .withValues(alpha: 0.5),
               ),
             ),
             const SizedBox(height: 20),
@@ -182,7 +195,8 @@ class AppDivider extends StatelessWidget {
 
 class VehicleTypeIcon extends StatelessWidget {
   const VehicleTypeIcon({
-    required this.vehicleType, super.key,
+    required this.vehicleType,
+    super.key,
     this.size = 24,
     this.color,
   });
@@ -208,7 +222,9 @@ class VehicleTypeIcon extends StatelessWidget {
 
 class InfoRow extends StatelessWidget {
   const InfoRow({
-    required this.label, required this.value, super.key,
+    required this.label,
+    required this.value,
+    super.key,
     this.valueColor,
   });
 
