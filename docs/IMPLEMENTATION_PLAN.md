@@ -114,21 +114,21 @@ Tick a line (`[x]`) when the ticket's PR is merged into `dev`.
 - [x] T05 Cascade-delete vehicle records
 - [ ] T06 Fix analytics period mismatch and cost-per-km
 - [ ] T07 Hide Rentals behind a feature flag and remove duplicated vehicle screen
-- [x] T08 Settings screen with global currency and units
+- [ ] T08 Settings screen with global currency and units
 - [ ] T09 Odometer validation and correction
 - [ ] T10 Edit and delete fuel entries
 - [ ] T11 Fuel entry time, fuel type and station
-- [x] T12 Fuel statistics — average price, monthly spend, economy trend
+- [ ] T12 Fuel statistics — average price, monthly spend, economy trend
 - [ ] T13 Maintenance schedule model (date, distance, combined intervals)
 - [ ] T14 Complete maintenance from schedule (service history)
 - [ ] T15 Edit and delete maintenance entries
-- [x] T16 Parts lifecycle — install, lifespan, warranty, replace
+- [ ] T16 Parts lifecycle — install, lifespan, warranty, replace
 - [ ] T17 Maintenance tab with Parts and Maintenance sub-tabs
 - [ ] T18 Reminder engine with reschedule-on-change
 - [ ] T19 Reminder centre states — snooze, complete, dismiss, history
 - [ ] T20 Custom and document reminders
 - [ ] T21 Notification preferences and advance notice
-- [x] T22 General expense records
+- [ ] T22 General expense records
 - [ ] T23 Expense aggregation rules without double counting
 - [ ] T24 Statistics tab — ranges, charts, global and per-vehicle costs
 - [ ] T25 Export reports (PDF, Excel, CSV) from Settings / drawer
