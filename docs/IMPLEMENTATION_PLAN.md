@@ -107,11 +107,11 @@ Claude cannot switch its own model mid-session, so for implementation either:
 Tick a line (`[x]`) when the ticket's PR is merged into `dev`.
 
 - [x] Audit and plan (this document)
-- [ ] T01 Merge fuel consumption PR and fix dev build
+- [x] T01 Merge fuel consumption PR and fix dev build
 - [x] T02 Add GitHub Actions CI and automated PR review (VRF-5)
 - [ ] T03 Add Hive schema versioning and migration runner
-- [ ] T04 Fix notification time zone and stable notification ids
-- [ ] T05 Cascade-delete vehicle records
+- [x] T04 Fix notification time zone and stable notification ids
+- [x] T05 Cascade-delete vehicle records
 - [ ] T06 Fix analytics period mismatch and cost-per-km
 - [ ] T07 Hide Rentals behind a feature flag and remove duplicated vehicle screen
 - [ ] T08 Settings screen with global currency and units
