@@ -1,132 +1,23 @@
 import 'package:drivometry/core/theme/app_theme.dart';
 import 'package:drivometry/features/fuel/domain/entities/fuel_entry.dart';
-import 'package:drivometry/features/fuel/domain/repositories/fuel_repository.dart';
 import 'package:drivometry/features/fuel/domain/usecases/fuel_usecases.dart';
 import 'package:drivometry/features/fuel/presentation/pages/add_fuel_entry_page.dart';
 import 'package:drivometry/features/vehicles/domain/entities/vehicle.dart';
-import 'package:drivometry/features/vehicles/domain/repositories/vehicle_repository.dart';
 import 'package:drivometry/features/vehicles/domain/usecases/vehicle_usecases.dart';
 import 'package:drivometry/injection_container.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
-class _InMemoryFuelRepository implements FuelRepository {
-  _InMemoryFuelRepository(List<FuelEntry> seed)
-      : entries = {for (final e in seed) e.id: e};
+import 'fuel_test_fakes.dart';
 
-  final Map<String, FuelEntry> entries;
-
-  List<FuelEntry> _byVehicle(String vehicleId) =>
-      entries.values.where((e) => e.vehicleId == vehicleId).toList()
-        ..sort((a, b) => b.date.compareTo(a.date));
-
-  @override
-  Future<List<FuelEntry>> getFuelEntriesByVehicle(String vehicleId) async =>
-      _byVehicle(vehicleId);
-
-  @override
-  Future<FuelEntry?> getLastFuelEntry(String vehicleId) async {
-    final list = _byVehicle(vehicleId);
-    return list.isEmpty ? null : list.first;
-  }
-
-  @override
-  Future<void> addFuelEntry(FuelEntry entry) async => entries[entry.id] = entry;
-
-  @override
-  Future<void> updateFuelEntry(FuelEntry entry) async =>
-      entries[entry.id] = entry;
-
-  @override
-  Future<void> updateFuelEntries(List<FuelEntry> batch) async {
-    for (final entry in batch) {
-      entries[entry.id] = entry;
-    }
-  }
-
-  @override
-  Future<void> deleteFuelEntry(String id) async => entries.remove(id);
-
-  @override
-  Stream<List<FuelEntry>> watchFuelEntriesByVehicle(String vehicleId) =>
-      Stream.value(_byVehicle(vehicleId));
-
-  @override
-  Future<double> getTotalFuelCostByVehicle(String vehicleId) async => 0;
-
-  @override
-  Future<double> getTotalFuelCostInRange(DateTime from, DateTime to) async => 0;
-
-  @override
-  Future<double> getTotalFuelCostByVehicleInRange(
-    String vehicleId,
-    DateTime from,
-    DateTime to,
-  ) async =>
-      0;
-}
-
-class _InMemoryVehicleRepository extends VehicleRepository {
-  _InMemoryVehicleRepository(this.vehicle);
-  final Vehicle vehicle;
-  Vehicle? updated;
-
-  @override
-  Future<void> updateVehicle(Vehicle vehicle) async => updated = vehicle;
-
-  @override
-  Future<List<Vehicle>> getAllVehicles() async => const [];
-  @override
-  Future<Vehicle?> getVehicleById(String id) async => updated ?? vehicle;
-  @override
-  Future<void> addVehicle(Vehicle vehicle) async {}
-  @override
-  Future<void> deleteVehicle(String id) async {}
-  @override
-  Stream<List<Vehicle>> watchAllVehicles() => const Stream.empty();
-}
-
-Vehicle _vehicle({double? tankCapacity = 45, double odometer = 1200}) =>
-    Vehicle(
-      id: 'v1',
-      name: 'Test car',
-      type: 'Car',
-      make: 'Toyota',
-      model: 'Axio',
-      year: 2020,
-      licensePlate: 'DHA-1',
-      initialOdometer: 0,
-      currentOdometer: odometer,
-      createdAt: DateTime(2026),
-      tankCapacityLiters: tankCapacity,
-    );
-
-FuelEntry _saved(
-  String id,
-  double odometer,
-  double liters, {
-  required bool full,
-  required int day,
-}) =>
-    FuelEntry(
-      id: id,
-      vehicleId: 'v1',
-      date: DateTime(2026, 9, day),
-      odometer: odometer,
-      liters: liters,
-      costPerLiter: 100,
-      totalCost: liters * 100,
-      isFullTank: full,
-    );
-
-late _InMemoryFuelRepository fuelRepo;
-late _InMemoryVehicleRepository vehicleRepo;
+late InMemoryFuelRepository fuelRepo;
+late InMemoryVehicleRepository vehicleRepo;
 
 Future<void> _registerFakes(List<FuelEntry> seed, Vehicle vehicle) async {
   await sl.reset();
-  fuelRepo = _InMemoryFuelRepository(seed);
-  vehicleRepo = _InMemoryVehicleRepository(vehicle);
+  fuelRepo = InMemoryFuelRepository(seed);
+  vehicleRepo = InMemoryVehicleRepository(vehicle);
   sl
     ..registerSingleton(GetLastFuelEntry(fuelRepo))
     ..registerSingleton(GetFuelEntriesByVehicle(fuelRepo))
@@ -170,13 +61,13 @@ Future<void> _save(WidgetTester tester) async {
 
 void main() {
   final history = [
-    _saved('full1', 1000, 40, full: true, day: 1),
-    _saved('partial', 1200, 10, full: false, day: 5),
+    savedFill('full1', 1000, 40, full: true, day: 1),
+    savedFill('partial', 1200, 10, full: false, day: 5),
   ];
 
   testWidgets('full tank uses vehicle tank capacity, no liters input',
       (tester) async {
-    await _pumpPage(tester, _vehicle(), history: history);
+    await _pumpPage(tester, testVehicle(), history: history);
 
     expect(_field('Liters *'), findsNothing);
     expect(find.text('Full tank (from vehicle)'), findsOneWidget);
@@ -205,7 +96,7 @@ void main() {
 
   testWidgets('partial fill asks for liters and stores no consumption',
       (tester) async {
-    await _pumpPage(tester, _vehicle(), history: history);
+    await _pumpPage(tester, testVehicle(), history: history);
 
     await tester.tap(find.text('Full tank'));
     await tester.pumpAndSettle();
@@ -228,7 +119,7 @@ void main() {
   });
 
   testWidgets('partial fill can be entered by total paid', (tester) async {
-    await _pumpPage(tester, _vehicle(), history: history);
+    await _pumpPage(tester, testVehicle(), history: history);
 
     await tester.tap(find.text('Full tank'));
     await tester.pumpAndSettle();
@@ -248,7 +139,7 @@ void main() {
 
   testWidgets('full tank without saved capacity falls back to liters input',
       (tester) async {
-    await _pumpPage(tester, _vehicle(tankCapacity: null), history: history);
+    await _pumpPage(tester, testVehicle(tankCapacity: null), history: history);
 
     expect(_field('Liters *'), findsOneWidget);
     expect(
@@ -257,7 +148,7 @@ void main() {
 
   testWidgets('first log for a vehicle asks for odometer and saves full tank',
       (tester) async {
-    await _pumpPage(tester, _vehicle(odometer: 0), history: const []);
+    await _pumpPage(tester, testVehicle(odometer: 0), history: const []);
 
     await tester.enterText(_field('Odometer (km) *'), '800');
     await tester.enterText(_field('Cost per liter *'), '100');
@@ -271,7 +162,7 @@ void main() {
   });
 
   testWidgets('full tank uses pumped liters when entered', (tester) async {
-    await _pumpPage(tester, _vehicle(), history: history);
+    await _pumpPage(tester, testVehicle(), history: history);
 
     await tester.enterText(_field('Km since last refill *'), '300');
     await tester.enterText(_field('Liters pumped (optional)'), '30');
@@ -305,7 +196,7 @@ void main() {
     ];
     await _pumpPage(
       tester,
-      _vehicle(tankCapacity: 50, odometer: 1000),
+      testVehicle(tankCapacity: 50, odometer: 1000),
       history: partialsOnly,
     );
 
