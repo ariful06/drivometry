@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/formatters.dart';
@@ -9,6 +10,8 @@ import '../../../vehicles/domain/entities/vehicle.dart';
 import '../../../vehicles/domain/usecases/vehicle_usecases.dart';
 import '../../domain/entities/fuel_entry.dart';
 import '../../domain/services/fuel_consumption_calculator.dart';
+import '../../domain/usecases/fuel_usecases.dart';
+import 'add_fuel_entry_page.dart';
 
 /// Passed via GoRouter `extra` when opening [FuelEntryDetailPage].
 class FuelEntryDetailArgs {
@@ -27,7 +30,7 @@ class FuelEntryDetailArgs {
   final FuelConsumptionSegment? consumption;
 }
 
-/// Read-only fuel log with receipt when available.
+/// Fuel log with receipt when available; can be edited or deleted.
 class FuelEntryDetailPage extends StatefulWidget {
   const FuelEntryDetailPage({required this.args, super.key});
 
@@ -38,10 +41,11 @@ class FuelEntryDetailPage extends StatefulWidget {
 }
 
 class _FuelEntryDetailPageState extends State<FuelEntryDetailPage> {
-  late final Future<Vehicle?> _vehicleFuture;
-  late final Future<bool> _receiptFuture;
+  late Future<Vehicle?> _vehicleFuture;
+  late Future<bool> _receiptFuture;
 
-  FuelEntryDetailArgs get args => widget.args;
+  /// Starts as [FuelEntryDetailPage.args]; reloaded after an edit.
+  late FuelEntryDetailArgs args = widget.args;
 
   FuelEntry get _e => args.entry;
 
@@ -56,10 +60,87 @@ class _FuelEntryDetailPageState extends State<FuelEntryDetailPage> {
   void initState() {
     super.initState();
     _vehicleFuture = sl<GetVehicleById>()(_e.vehicleId);
+    _receiptFuture = _checkReceipt();
+  }
+
+  Future<bool> _checkReceipt() {
     final receiptImagePath = _e.receiptImagePath;
-    _receiptFuture = (receiptImagePath == null || receiptImagePath.isEmpty)
+    return (receiptImagePath == null || receiptImagePath.isEmpty)
         ? Future.value(false)
         : Future.value(File(receiptImagePath).existsSync());
+  }
+
+  Future<void> _edit() async {
+    final vehicle = await _vehicleFuture;
+    if (vehicle == null || !mounted) return;
+    final edited = await context.push<FuelEntry>(
+      '/vehicles/${_e.vehicleId}/fuel/${_e.id}/edit',
+      extra: FuelEntryEditArgs(vehicle: vehicle, entry: _e),
+    );
+    if (edited != null && mounted) await _reload();
+  }
+
+  /// Re-reads the fill, its neighbour and consumption after an edit.
+  Future<void> _reload() async {
+    final vehicleFuture = sl<GetVehicleById>()(_e.vehicleId);
+    final entries = await sl<GetFuelEntriesByVehicle>()(_e.vehicleId);
+    final vehicle = await vehicleFuture;
+    final ordered = FuelConsumptionCalculator.sortChronologically(entries);
+    final index = ordered.indexWhere((entry) => entry.id == _e.id);
+    if (index < 0 || !mounted) return;
+    final entry = ordered[index];
+    setState(() {
+      args = FuelEntryDetailArgs(
+        entry: entry,
+        previousEntry: index > 0 ? ordered[index - 1] : null,
+        consumption: FuelConsumptionCalculator.segmentsByEntryId(
+          entries,
+          tankCapacityLiters: vehicle?.tankCapacityLiters,
+        )[entry.id],
+      );
+      _vehicleFuture = Future.value(vehicle);
+      _receiptFuture = _checkReceipt();
+    });
+  }
+
+  Future<void> _delete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete fuel entry?'),
+        content: const Text(
+          'Consumption and the vehicle odometer will be recalculated. '
+          'This action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await sl<RemoveFuelEntry>()(_e);
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Fuel entry deleted')),
+      );
+      context.pop();
+    } catch (error) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Failed to delete: $error')),
+      );
+    }
   }
 
   void _openReceiptFullscreen(BuildContext context, String path) {
@@ -105,6 +186,19 @@ class _FuelEntryDetailPageState extends State<FuelEntryDetailPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Fuel log'),
+        actions: [
+          IconButton(
+            tooltip: 'Edit',
+            icon: const Icon(Icons.edit_outlined),
+            onPressed: _edit,
+          ),
+          IconButton(
+            tooltip: 'Delete',
+            icon: const Icon(Icons.delete_outline),
+            onPressed: _delete,
+          ),
+          const SizedBox(width: 4),
+        ],
       ),
       body: FutureBuilder<Vehicle?>(
         future: _vehicleFuture,

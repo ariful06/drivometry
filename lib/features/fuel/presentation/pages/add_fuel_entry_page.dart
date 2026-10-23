@@ -11,6 +11,7 @@ import 'package:uuid/uuid.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/utils/odometer_validator.dart';
 import '../../../../core/utils/receipt_storage.dart';
 import '../../../../injection_container.dart';
 import '../../../vehicles/domain/entities/vehicle.dart';
@@ -35,10 +36,30 @@ final _fuelNumericInputFormatters = <TextInputFormatter>[
   FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
 ];
 
-class AddFuelEntryPage extends StatefulWidget {
-  const AddFuelEntryPage({required this.vehicle, super.key});
+/// Plain number for a text field (no grouping, no trailing `.0`).
+String _editableNumber(double value) =>
+    value == value.roundToDouble() ? value.toStringAsFixed(0) : '$value';
+
+/// Passed via GoRouter `extra` to open [AddFuelEntryPage] in edit mode.
+class FuelEntryEditArgs {
+  const FuelEntryEditArgs({required this.vehicle, required this.entry});
 
   final Vehicle vehicle;
+  final FuelEntry entry;
+}
+
+/// Logs a new fill, or edits [initialEntry] when given.
+class AddFuelEntryPage extends StatefulWidget {
+  const AddFuelEntryPage({
+    required this.vehicle,
+    this.initialEntry,
+    super.key,
+  });
+
+  final Vehicle vehicle;
+
+  /// Saved fill to edit; null logs a new one.
+  final FuelEntry? initialEntry;
 
   @override
   State<AddFuelEntryPage> createState() => _AddFuelEntryPageState();
@@ -67,11 +88,13 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
   /// total ÷ cost per liter.
   bool _useTotalPaidForQuantity = false;
 
-  /// Last fuel entry for this vehicle (loaded on init); used to show last refill amount.
+  /// Fill before this one (loaded on init): the last fill when adding, the
+  /// chronologically previous fill when editing. Its odometer is the baseline.
   FuelEntry? _lastFuelEntry;
 
-  /// All saved fills for this vehicle; full-tank consumption needs the whole chain
-  /// back to the previous full tank (partial fills in between add their liters).
+  /// All other saved fills for this vehicle (the edited fill excluded);
+  /// full-tank consumption needs the whole chain back to the previous full tank
+  /// (partial fills in between add their liters).
   List<FuelEntry> _fuelHistory = const [];
   bool _lastEntryLoading = true;
 
@@ -106,6 +129,14 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
   void _bumpCostSummary() {
     _costSummaryTick.value++;
   }
+
+  bool get _isEditing => widget.initialEntry != null;
+
+  /// Reading this fill's distance is measured from: the vehicle's saved
+  /// odometer when adding, the previous fill's odometer when editing.
+  double get _baselineOdometer => _isEditing
+      ? _lastFuelEntry?.odometer ?? widget.vehicle.initialOdometer
+      : widget.vehicle.currentOdometer;
 
   /// First fuel log for this vehicle: no previous entry, so we don't ask for trip distance.
   bool get _isFirstFuelLog => !_lastEntryLoading && _lastFuelEntry == null;
@@ -188,7 +219,7 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
   double? get _odometerFromTrip {
     final trip = _tripKmParsed;
     if (trip == null || trip <= 0) return null;
-    return widget.vehicle.currentOdometer + trip;
+    return _baselineOdometer + trip;
   }
 
   /// Km since last refill (trip) or odometer delta (full odo mode).
@@ -200,8 +231,8 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
       return trip;
     }
     final odo = double.tryParse(_odometerCtrl.text.trim());
-    if (odo == null || odo <= widget.vehicle.currentOdometer) return null;
-    return odo - widget.vehicle.currentOdometer;
+    if (odo == null || odo <= _baselineOdometer) return null;
+    return odo - _baselineOdometer;
   }
 
   /// Fill being entered, as the calculator sees it. Null until distance is valid.
@@ -212,7 +243,7 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
       id: '__draft__',
       vehicleId: widget.vehicle.id,
       date: _date,
-      odometer: widget.vehicle.currentOdometer + distanceKm,
+      odometer: _baselineOdometer + distanceKm,
       liters: _effectiveLiters,
       costPerLiter: _parsedCostPerLiter,
       totalCost: _totalCost,
@@ -238,9 +269,8 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
     setState(() {
       if (useTrip) {
         final odo = double.tryParse(_odometerCtrl.text.trim());
-        if (odo != null && odo > widget.vehicle.currentOdometer) {
-          _tripKmCtrl.text =
-              (odo - widget.vehicle.currentOdometer).toStringAsFixed(0);
+        if (odo != null && odo > _baselineOdometer) {
+          _tripKmCtrl.text = (odo - _baselineOdometer).toStringAsFixed(0);
         } else {
           _tripKmCtrl.clear();
         }
@@ -248,8 +278,7 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
       } else {
         final trip = _tripKmParsed;
         if (trip != null && trip > 0) {
-          _odometerCtrl.text =
-              (widget.vehicle.currentOdometer + trip).toStringAsFixed(0);
+          _odometerCtrl.text = (_baselineOdometer + trip).toStringAsFixed(0);
         }
         _useTripMode = false;
       }
@@ -261,7 +290,12 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
   void initState() {
     super.initState();
     _imagePicker = ImagePicker();
-    _odometerCtrl.text = widget.vehicle.currentOdometer.toStringAsFixed(0);
+    final initial = widget.initialEntry;
+    if (initial != null) {
+      _prefill(initial);
+    } else {
+      _odometerCtrl.text = widget.vehicle.currentOdometer.toStringAsFixed(0);
+    }
     _tripKmCtrl.addListener(_bumpMileagePreview);
     _odometerCtrl.addListener(_bumpMileagePreview);
     _litersCtrl.addListener(_bumpCostSummary);
@@ -272,15 +306,50 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
     _loadLastFuelEntry();
   }
 
+  /// Fills the form from the fill being edited.
+  void _prefill(FuelEntry entry) {
+    _date = entry.date;
+    _odometerCtrl.text = _editableNumber(entry.odometer);
+    _isFullTank = entry.isFullTank;
+    _missedPreviousFill = entry.missedPreviousFill;
+    final capacity = widget.vehicle.tankCapacityLiters;
+    if (entry.isFullTank && capacity != null) {
+      if (entry.liters != capacity) {
+        _fullTankLitersCtrl.text = _editableNumber(entry.liters);
+      }
+    } else {
+      _litersCtrl.text = _editableNumber(entry.liters);
+    }
+    _costPerLiterCtrl.text = _editableNumber(entry.costPerLiter);
+    if (entry.fuelLevelPercent != null) {
+      _fuelLevelCtrl.text = entry.fuelLevelPercent!.toStringAsFixed(0);
+    }
+    _notesCtrl.text = entry.notes ?? '';
+    _pickedReceiptPath = entry.receiptImagePath;
+  }
+
   Future<void> _loadLastFuelEntry() async {
     try {
       // Newest first, so the last fill is the head of the history.
-      final history = await sl<GetFuelEntriesByVehicle>()(widget.vehicle.id);
+      final saved = await sl<GetFuelEntriesByVehicle>()(widget.vehicle.id);
+      final initial = widget.initialEntry;
+      final history = initial == null
+          ? saved
+          : saved.where((entry) => entry.id != initial.id).toList();
+      final previous = initial == null
+          ? history.firstOrNull
+          : _previousFill(history, initial);
       if (mounted) {
         setState(() {
-          _lastFuelEntry = history.firstOrNull;
+          _lastFuelEntry = previous;
           _fuelHistory = history;
           _lastEntryLoading = false;
+          if (initial != null && previous != null) {
+            // Entries logged by trip reopen in trip mode; others by odometer.
+            final trip = initial.odometer - previous.odometer;
+            _useTripMode = initial.tripDistance != null && trip > 0;
+            if (_useTripMode) _tripKmCtrl.text = trip.toStringAsFixed(0);
+          }
         });
         _bumpMileagePreview();
       }
@@ -290,6 +359,14 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
         _bumpMileagePreview();
       }
     }
+  }
+
+  /// Latest fill in [history] that comes before [entry] chronologically.
+  static FuelEntry? _previousFill(List<FuelEntry> history, FuelEntry entry) {
+    final ordered =
+        FuelConsumptionCalculator.sortChronologically([...history, entry]);
+    final index = ordered.indexWhere((e) => e.id == entry.id);
+    return index > 0 ? ordered[index - 1] : null;
   }
 
   @override
@@ -324,7 +401,7 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
         title: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Log fuel'),
+            Text(_isEditing ? 'Edit fuel' : 'Log fuel'),
             const SizedBox(height: 2),
             Text(
               widget.vehicle.name,
@@ -353,8 +430,7 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
                 tankCapacityLiters: widget.vehicle.tankCapacityLiters,
                 lastRefillLiters: _lastFuelEntry?.liters,
                 colors: colors,
-                baselineOdometer:
-                    _isFirstFuelLog ? null : widget.vehicle.currentOdometer,
+                baselineOdometer: _isFirstFuelLog ? null : _baselineOdometer,
               ),
             ],
             const SizedBox(height: 20),
@@ -394,7 +470,7 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
               ),
             ] else if (_useTripMode) ...[
               _BaselineOdometerHint(
-                odometer: widget.vehicle.currentOdometer,
+                odometer: _baselineOdometer,
                 colors: colors,
               ),
               const SizedBox(height: 12),
@@ -470,8 +546,8 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
                   if (v == null || v.isEmpty) return 'Required';
                   final n = double.tryParse(v);
                   if (n == null) return 'Invalid number';
-                  if (n <= widget.vehicle.currentOdometer) {
-                    return 'Must be greater than saved ${Formatters.formatDistance(widget.vehicle.currentOdometer)}';
+                  if (n <= _baselineOdometer) {
+                    return 'Must be greater than saved ${Formatters.formatDistance(_baselineOdometer)}';
                   }
                   return null;
                 },
@@ -819,7 +895,7 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
                           color: Colors.white,
                         ),
                       )
-                    : const Text('Save entry'),
+                    : Text(_isEditing ? 'Save changes' : 'Save entry'),
               ),
             ),
           ],
@@ -954,6 +1030,47 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
     if (picked != null && mounted) setState(() => _date = picked);
   }
 
+  /// Checks [odometer] against the other saved fills. Errors block saving;
+  /// warnings ask for confirmation. The edited fill's own reading is excluded.
+  Future<bool> _confirmOdometer(double odometer) async {
+    final check = OdometerValidator.validate(
+      odometer: odometer,
+      date: _date,
+      existing: [
+        for (final entry in _fuelHistory)
+          OdometerReading(entry.date, entry.odometer),
+      ],
+    );
+    if (check == null) return true;
+    if (check.issue == OdometerIssue.error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(check.message),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+      return false;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Check odometer'),
+        content: Text(check.message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Edit'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Save anyway'),
+          ),
+        ],
+      ),
+    );
+    return confirmed ?? false;
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -974,36 +1091,42 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
       }
     }
 
+    final double odometer;
+    final double? distanceDriven;
+    final double? tripDistance;
+
+    if (_isFirstFuelLog) {
+      odometer = double.parse(_odometerCtrl.text.trim());
+      distanceDriven = null;
+      tripDistance = null;
+    } else if (_useTripMode) {
+      final trip = double.parse(_tripKmCtrl.text.trim());
+      odometer = _baselineOdometer + trip;
+      distanceDriven = trip;
+      tripDistance = trip;
+    } else {
+      odometer = double.parse(_odometerCtrl.text.trim());
+      distanceDriven =
+          odometer > _baselineOdometer ? odometer - _baselineOdometer : null;
+      tripDistance = null;
+    }
+
+    if (!await _confirmOdometer(odometer)) return;
+    if (!mounted) return;
+
     setState(() => _isSaving = true);
 
     try {
-      final double odometer;
-      final double? distanceDriven;
-      final double? tripDistance;
-
-      if (_isFirstFuelLog) {
-        odometer = double.parse(_odometerCtrl.text.trim());
-        distanceDriven = null;
-        tripDistance = null;
-      } else if (_useTripMode) {
-        final trip = double.parse(_tripKmCtrl.text.trim());
-        odometer = widget.vehicle.currentOdometer + trip;
-        distanceDriven = trip;
-        tripDistance = trip;
-      } else {
-        odometer = double.parse(_odometerCtrl.text.trim());
-        distanceDriven = odometer > widget.vehicle.currentOdometer
-            ? odometer - widget.vehicle.currentOdometer
-            : null;
-        tripDistance = null;
-      }
-
       final isFullTank = _isFullTank;
       final missedPreviousFill = !_isFirstFuelLog && _missedPreviousFill;
 
-      final entryId = const Uuid().v4();
+      final initial = widget.initialEntry;
+      final entryId = initial?.id ?? const Uuid().v4();
       String? receiptImagePath;
-      if (_pickedReceiptPath != null) {
+      if (_pickedReceiptPath != null &&
+          _pickedReceiptPath == initial?.receiptImagePath) {
+        receiptImagePath = _pickedReceiptPath;
+      } else if (_pickedReceiptPath != null) {
         receiptImagePath = await saveReceiptImage(entryId, _pickedReceiptPath!);
       }
 
@@ -1029,6 +1152,13 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
         missedPreviousFill: missedPreviousFill,
         fuelLevelPercent: isFullTank ? null : _parsedFuelLevelPercent,
       );
+
+      if (initial != null) {
+        // Recalculates consumption and re-syncs the vehicle odometer.
+        await sl<EditFuelEntry>()(entry);
+        if (mounted) context.pop(entry);
+        return;
+      }
 
       await sl<AddFuelEntry>()(entry);
       // Full-tank consumption spans several fills, so derive it from the whole chain.
