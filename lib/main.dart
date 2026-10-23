@@ -10,6 +10,7 @@ import 'core/theme/app_theme.dart';
 import 'core/theme/theme_cubit.dart';
 import 'features/maintenance/domain/usecases/maintenance_usecases.dart';
 import 'features/startup/presentation/cubits/startup_cubit.dart';
+import 'core/settings/app_settings.dart';
 import 'injection_container.dart';
 
 Future<void> main() async {
@@ -36,6 +37,7 @@ void _attachErrorHandlers() {
 Future<Widget> _initApp() async {
   try {
     await initDependencies();
+    await AppSettings.instance.load();
     final prefs = await SharedPreferences.getInstance();
     final hasSeenOnboarding =
         prefs.getBool(DrivometryPrefs.hasSeenOnboarding) ?? false;
@@ -124,14 +126,18 @@ class DrivometryApp extends StatelessWidget {
               create: (_) => ThemeCubit()..loadTheme(),
               child: BlocBuilder<ThemeCubit, ThemeMode>(
                 builder: (context, themeMode) {
-                  return MaterialApp.router(
-                    title: 'Drivometry',
-                    debugShowCheckedModeBanner: false,
-                    theme: AppTheme.lightTheme,
-                    darkTheme: AppTheme.darkTheme,
-                    themeMode: themeMode,
-                    routerConfig: router,
-                  );
+                  return ListenableBuilder(
+                      listenable: AppSettings.instance,
+                      builder: (context, _) => MaterialApp.router(
+                            // New key on settings change so every screen reformats.
+                            key: ValueKey(AppSettings.instance.revision),
+                            title: 'Drivometry',
+                            debugShowCheckedModeBanner: false,
+                            theme: AppTheme.lightTheme,
+                            darkTheme: AppTheme.darkTheme,
+                            themeMode: themeMode,
+                            routerConfig: router,
+                          ));
                 },
               ),
             );

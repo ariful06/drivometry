@@ -49,6 +49,7 @@ class VehicleHiveDataSource implements VehicleLocalDataSource {
       maintenanceEntriesBox(),
       partReplacementsBox(),
       rentalEntriesBox(),
+      expensesBox(),
     ]) {
       final keys = related.keys.where((key) {
         final v = related.get(key);

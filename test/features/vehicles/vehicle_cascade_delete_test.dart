@@ -17,6 +17,7 @@ void main() {
       kMaintenanceEntriesBox,
       kPartReplacementsBox,
       kRentalEntriesBox,
+      kExpensesBox,
     ]) {
       await Hive.openBox<dynamic>(name);
     }
@@ -33,6 +34,8 @@ void main() {
     await maintenanceEntriesBox().put('m1', {'vehicle_id': 'a'});
     await partReplacementsBox().put('p1', {'vehicle_id': 'a'});
     await rentalEntriesBox().put('r1', {'vehicle_id': 'a'});
+    await expensesBox().put('e1', {'vehicle_id': 'a'});
+    await expensesBox().put('e2', {'vehicle_id': 'b'});
     await vehiclesBox().put('a', {'id': 'a'});
 
     await VehicleHiveDataSource().deleteVehicle('a');
@@ -42,5 +45,6 @@ void main() {
     expect(maintenanceEntriesBox().isEmpty, isTrue);
     expect(partReplacementsBox().isEmpty, isTrue);
     expect(rentalEntriesBox().isEmpty, isTrue);
+    expect(expensesBox().keys.toList(), ['e2']);
   });
 }

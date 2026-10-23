@@ -13,6 +13,10 @@ import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tzl;
 
 import 'core/database/hive_storage.dart';
+import 'features/parts/presentation/cubits/parts_cubit.dart';
+import 'features/expenses/data/expense_repository_impl.dart';
+import 'features/expenses/domain/repositories/expense_repository.dart';
+import 'features/expenses/presentation/cubits/expense_cubit.dart';
 import 'core/services/performance_service.dart';
 import 'features/analytics/presentation/cubits/analytics_cubit.dart';
 import 'features/fuel/data/datasources/fuel_hive_datasource.dart';
@@ -185,11 +189,21 @@ Future<void> initDependencies() async {
     ),
   );
 
+  sl.registerFactoryParam<PartsCubit, String, void>(
+    (vehicleId, _) => PartsCubit(sl<PartReplacementRepository>(), vehicleId),
+  );
+  sl.registerLazySingleton<ExpenseRepository>(() => ExpenseRepositoryImpl());
+  sl.registerFactoryParam<ExpenseCubit, String, void>(
+    (vehicleId, _) => ExpenseCubit(sl<ExpenseRepository>(), vehicleId),
+  );
+
   sl.registerFactory(
     () => AnalyticsCubit(
       fuelRepository: sl<FuelRepository>(),
       maintenanceRepository: sl<MaintenanceRepository>(),
       vehicleRepository: sl<VehicleRepository>(),
+      expenseRepository: sl<ExpenseRepository>(),
+      partRepository: sl<PartReplacementRepository>(),
     ),
   );
 
