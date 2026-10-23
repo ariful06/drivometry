@@ -115,12 +115,33 @@ Future<void> initDependencies() async {
       sl<VehicleRepository>(),
     ),
   );
+  sl.registerLazySingleton(
+    () => SyncVehicleOdometer(
+      sl<FuelRepository>(),
+      sl<MaintenanceRepository>(),
+      sl<VehicleRepository>(),
+    ),
+  );
+  sl.registerLazySingleton(
+    () => EditFuelEntry(
+      sl<FuelRepository>(),
+      sl<RecalculateFuelConsumption>(),
+      sl<SyncVehicleOdometer>(),
+    ),
+  );
+  sl.registerLazySingleton(
+    () => RemoveFuelEntry(
+      sl<FuelRepository>(),
+      sl<RecalculateFuelConsumption>(),
+      sl<SyncVehicleOdometer>(),
+    ),
+  );
   sl.registerFactory(
     () => FuelCubit(
       watchFuelEntries: sl<WatchFuelEntriesByVehicle>(),
       addFuelEntry: sl<AddFuelEntry>(),
-      updateFuelEntry: sl<UpdateFuelEntry>(),
-      deleteFuelEntry: sl<DeleteFuelEntry>(),
+      editFuelEntry: sl<EditFuelEntry>(),
+      removeFuelEntry: sl<RemoveFuelEntry>(),
       getTotalCost: sl<GetTotalFuelCostByVehicle>(),
       recalculateConsumption: sl<RecalculateFuelConsumption>(),
     ),

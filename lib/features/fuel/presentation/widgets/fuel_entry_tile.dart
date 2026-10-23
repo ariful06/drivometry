@@ -73,9 +73,7 @@ class FuelEntryTile extends StatelessWidget {
         child: const Icon(Icons.delete_outline, color: Colors.white, size: 24),
       ),
       onDismissed: (_) {
-        context
-            .read<FuelCubit>()
-            .deleteFuelEntry(entry.id, vehicleId: entry.vehicleId);
+        context.read<FuelCubit>().deleteFuelEntry(entry);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Fuel entry deleted')),
         );

@@ -12,29 +12,27 @@ class FuelCubit extends Cubit<FuelState> {
   FuelCubit({
     required WatchFuelEntriesByVehicle watchFuelEntries,
     required AddFuelEntry addFuelEntry,
-    required UpdateFuelEntry updateFuelEntry,
-    required DeleteFuelEntry deleteFuelEntry,
+    required EditFuelEntry editFuelEntry,
+    required RemoveFuelEntry removeFuelEntry,
     required GetTotalFuelCostByVehicle getTotalCost,
     required RecalculateFuelConsumption recalculateConsumption,
   })  : _watchFuelEntries = watchFuelEntries,
         _addFuelEntry = addFuelEntry,
-        _updateFuelEntry = updateFuelEntry,
-        _deleteFuelEntry = deleteFuelEntry,
+        _editFuelEntry = editFuelEntry,
+        _removeFuelEntry = removeFuelEntry,
         _getTotalCost = getTotalCost,
         _recalculateConsumption = recalculateConsumption,
         super(const FuelInitial());
 
   final WatchFuelEntriesByVehicle _watchFuelEntries;
   final AddFuelEntry _addFuelEntry;
-  final UpdateFuelEntry _updateFuelEntry;
-  final DeleteFuelEntry _deleteFuelEntry;
+  final EditFuelEntry _editFuelEntry;
+  final RemoveFuelEntry _removeFuelEntry;
   final GetTotalFuelCostByVehicle _getTotalCost;
   final RecalculateFuelConsumption _recalculateConsumption;
   StreamSubscription<List<FuelEntry>>? _subscription;
-  String? _currentVehicleId;
 
   void watchForVehicle(String vehicleId) {
-    _currentVehicleId = vehicleId;
     emit(const FuelLoading());
     _subscription?.cancel();
     _subscription = _watchFuelEntries(vehicleId).listen(
@@ -77,22 +75,19 @@ class FuelCubit extends Cubit<FuelState> {
     }
   }
 
+  /// Saves an edited fill; consumption and vehicle odometer are recalculated.
   Future<void> updateFuelEntry(FuelEntry entry) async {
     try {
-      await _updateFuelEntry(entry);
-      await _recalculateConsumption(entry.vehicleId);
+      await _editFuelEntry(entry);
     } catch (error) {
       emit(FuelError(error.toString()));
     }
   }
 
-  Future<void> deleteFuelEntry(String id, {String? vehicleId}) async {
+  /// Deletes a fill; consumption and vehicle odometer are recalculated.
+  Future<void> deleteFuelEntry(FuelEntry entry) async {
     try {
-      await _deleteFuelEntry(id);
-      final affectedVehicleId = vehicleId ?? _currentVehicleId;
-      if (affectedVehicleId != null) {
-        await _recalculateConsumption(affectedVehicleId);
-      }
+      await _removeFuelEntry(entry);
     } catch (error) {
       emit(FuelError(error.toString()));
     }

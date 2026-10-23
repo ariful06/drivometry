@@ -95,6 +95,28 @@ class OdometerValidator {
     return null;
   }
 
+  /// Vehicle odometer after a record is edited or removed.
+  ///
+  /// The vehicle never drops below its remaining records or [initial]. When
+  /// the changed record had set [current] ([replacedOdometer] >= [current]),
+  /// the reading falls back to the highest remaining record; otherwise
+  /// [current] is kept (it was raised by something else, e.g. a rental).
+  static double resolveCurrent({
+    required double current,
+    required double initial,
+    required Iterable<double> remaining,
+    double? replacedOdometer,
+  }) {
+    var highest = initial;
+    for (final odometer in remaining) {
+      if (odometer > highest) highest = odometer;
+    }
+    if (replacedOdometer != null && replacedOdometer >= current) {
+      return highest;
+    }
+    return current > highest ? current : highest;
+  }
+
   /// Returns an error message when [liters] is not a sane tank capacity.
   static String? validateTankCapacity(double liters) {
     if (liters < minTankLiters || liters > maxTankLiters) {
