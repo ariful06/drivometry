@@ -11,6 +11,7 @@ const String kFuelEntriesBox = 'fuel_entries';
 const String kMaintenanceEntriesBox = 'maintenance_entries';
 const String kPartReplacementsBox = 'part_replacements';
 const String kRentalEntriesBox = 'rental_entries';
+const String kExpensesBox = 'expenses';
 
 /// Initializes Hive and opens all app boxes. Call once before runApp (e.g. in initDependencies).
 Future<void> initHive() async {
@@ -20,6 +21,7 @@ Future<void> initHive() async {
   await Hive.openBox<dynamic>(kMaintenanceEntriesBox);
   await Hive.openBox<dynamic>(kPartReplacementsBox);
   await Hive.openBox<dynamic>(kRentalEntriesBox);
+  await Hive.openBox<dynamic>(kExpensesBox);
   await runMigrations(await Hive.openBox<dynamic>(kMetaBox));
   if (kDebugMode) {
     dev.log('Hive initialized and boxes opened', name: 'HiveStorage');
@@ -33,3 +35,4 @@ Box<dynamic> maintenanceEntriesBox() =>
     Hive.box<dynamic>(kMaintenanceEntriesBox);
 Box<dynamic> partReplacementsBox() => Hive.box<dynamic>(kPartReplacementsBox);
 Box<dynamic> rentalEntriesBox() => Hive.box<dynamic>(kRentalEntriesBox);
+Box<dynamic> expensesBox() => Hive.box<dynamic>(kExpensesBox);
