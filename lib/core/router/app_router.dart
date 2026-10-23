@@ -121,6 +121,16 @@ class AppRouter {
             },
           ),
           GoRoute(
+            path: '/vehicles/:vehicleId/fuel/:entryId/edit',
+            builder: (context, state) {
+              final args = state.extra as FuelEntryEditArgs;
+              return AddFuelEntryPage(
+                vehicle: args.vehicle,
+                initialEntry: args.entry,
+              );
+            },
+          ),
+          GoRoute(
             path: '/vehicles/:vehicleId/fuel/:entryId',
             builder: (context, state) {
               final args = state.extra as FuelEntryDetailArgs;
