@@ -137,6 +137,14 @@ Tick a line (`[x]`) when the ticket's PR is merged into `dev`.
 - [ ] T28 Searchable history and quick-add
 - [ ] T29 Accessibility and deprecated API cleanup
 - [ ] T30 Release checklist and integration tests
+- [ ] T31 Quick odometer update
+- [ ] T32 Smart fuel form defaults
+- [ ] T33 Fuel types and units (CNG, LPG, EV, bi-fuel)
+- [ ] T34 Service schedule templates
+- [ ] T35 Recurring expenses
+- [ ] T36 Trip cost estimate
+- [ ] T37 CSV import (Fuelio, Drivvo, generic)
+- [ ] T38 App shortcuts and home-screen widget
 
 ---
 
@@ -315,6 +323,48 @@ Files are estimates.
 - **P2 · M · Deps:** most of M0–M5
 - **Requirements:** `integration_test/` happy paths (add vehicle → fuel → maintenance → reminder → stats → export → backup/restore); upgrade test from a v1 Hive fixture; `docs/RELEASE_CHECKLIST.md` (permissions, exact-alarm policy, iOS notification limits, version bump).
 
+### M7 — Competitive gaps (see `docs/COMPETITIVE_ANALYSIS.md`)
+
+#### T31 · `VRF: Quick odometer update`
+- **P1 · S · Deps:** T09
+- **Requirements:** "Update odometer" action on the vehicle screen; validated with `OdometerValidator` against fuel and maintenance readings (errors block, warnings confirm); never lowers the odometer; re-runs maintenance reminder checks after saving.
+- **Acceptance:** widget test: valid reading saves, lower reading is rejected; reminder check invoked.
+
+#### T32 · `VRF: Smart fuel form defaults`
+- **P1 · XS · Deps:** T10
+- **Requirements:** new fill prefills price per litre from the vehicle's last fill and remembers the last quantity mode (liters / total paid) and distance mode (trip / odometer) per vehicle.
+- **Acceptance:** widget test: second fill opens with the last price; edit mode keeps the entry's own values.
+
+#### T33 · `VRF: Fuel types and units (CNG, LPG, EV, bi-fuel)`
+- **P1 · L · Deps:** T03, T11
+- **Requirements:** vehicle gets a primary (and optional secondary) energy type: petrol, diesel, CNG (kg or m³), LPG (L), electric (kWh). Each fill records its energy type; consumption is calculated per energy type, so a petrol + CNG chain does not mix. Units shown per type (km/L, km/kg, km/kWh). Migration: existing vehicles and fills become petrol, in litres.
+- **Acceptance:** calculator tests for a bi-fuel chain; legacy rows load as petrol.
+
+#### T34 · `VRF: Service schedule templates`
+- **P2 · S · Deps:** T13
+- **Requirements:** preset tasks (engine oil, oil filter, air filter, brake fluid, coolant, tyres, battery, chain for bikes) with default months/km intervals, editable; picked when creating a schedule or vehicle.
+- **Acceptance:** presets create schedules with the right intervals per vehicle type.
+
+#### T35 · `VRF: Recurring expenses`
+- **P2 · S · Deps:** T22
+- **Requirements:** expense repeat rule (monthly / yearly / every N months) generates the next occurrence and an optional reminder; editing the series vs one occurrence.
+- **Acceptance:** unit tests for occurrence generation across month ends and leap years.
+
+#### T36 · `VRF: Trip cost estimate`
+- **P3 · XS · Deps:** T12
+- **Requirements:** calculator: distance → liters (vehicle's average consumption) → cost (last price per litre); shown on the vehicle's fuel statistics.
+- **Acceptance:** unit test; hidden when no measured consumption exists.
+
+#### T37 · `VRF: CSV import (Fuelio, Drivvo, generic)`
+- **P2 · M · Deps:** T03, T25
+- **Requirements:** import fills (and costs where present) from Fuelio and Drivvo CSV exports plus a generic column-mapped CSV; preview with row errors before saving; duplicates skipped by date + odometer; consumption and odometer recalculated after import.
+- **Acceptance:** fixture-based parser tests per format; re-import is a no-op.
+
+#### T38 · `VRF: App shortcuts and home-screen widget`
+- **P3 · M · Deps:** T27
+- **Requirements:** launcher shortcuts "Log fuel", "Add expense" (`quick_actions`); optional Android widget with last km/L and next reminder.
+- **Acceptance:** shortcut opens the add page for the last-used vehicle.
+
 ---
 
 ## 3. Suggested sequence
@@ -327,6 +377,7 @@ T01 → T02 → T04 → T03 → T05 → T06 → T07          (M0)
       T18 → T19 → T20 → T21                       (M4)
       T22 → T23 → T24 → T25                       (M5)
       T26 → T27 → T28 → T29 → T30                 (M6)
+      T32 → T31 → T33 → T37 → T35 → T34 → T36 → T38 (M7)
 ```
 **First ticket to implement:** T01 (merge PR #2), then **T04** (reminders currently fire at the wrong time for every non-UTC user).
 
