@@ -1,5 +1,6 @@
 // lib/features/fuel/presentation/widgets/fuel_entry_tile.dart
 
+import '../../../../core/constants/energy_type.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -130,8 +131,13 @@ class FuelEntryTile extends StatelessWidget {
                       Expanded(
                         child: _MetricChip(
                           icon: Icons.water_drop_outlined,
-                          value: Formatters.formatLiters(entry.liters),
-                          label: 'Refill',
+                          value: Formatters.formatQuantity(
+                            entry.liters,
+                            entry.energyType,
+                          ),
+                          label: entry.energyType == EnergyType.petrol
+                              ? 'Refill'
+                              : entry.energyType.label,
                           color: colors.fuelColor,
                         ),
                       ),
@@ -141,7 +147,7 @@ class FuelEntryTile extends StatelessWidget {
                           icon: Icons.eco_outlined,
                           value: _tileMileage != null
                               ? '${consumption!.isEstimated ? '≈ ' : ''}'
-                                  '${Formatters.formatFuelEfficiency(_tileMileage!)}'
+                                  '${Formatters.formatEfficiencyFor(_tileMileage!, entry.energyType)}'
                               : (entry.isFullTank ? '—' : 'Partial'),
                           label: 'Mileage',
                           color: colors.maintenanceColor,

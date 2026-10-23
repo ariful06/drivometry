@@ -1,3 +1,4 @@
+import 'package:drivometry/core/constants/energy_type.dart';
 import 'package:drivometry/core/database/hive_storage.dart';
 import 'package:drivometry/features/fuel/domain/entities/fuel_entry.dart';
 import 'package:drivometry/features/fuel/domain/usecases/fuel_usecases.dart';
@@ -109,6 +110,7 @@ void main() {
         currentOdometer: 1500,
         createdAt: daysAgo(60),
         tankCapacityLiters: 45,
+        secondaryFuelType: EnergyType.cng,
       ),
     );
     for (final entry in [
@@ -203,5 +205,37 @@ void main() {
     // The deleted fill set the odometer; it falls back to the highest
     // remaining record, which includes the manual 1650 reading.
     expect((await sl<GetVehicleById>()('it-car'))!.currentOdometer, 1650);
+
+    // T33: bi-fuel car logs CNG in kg; it starts its own consumption chain.
+    await tapText(tester, 'Log Fuel');
+    await tapText(tester, 'CNG');
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Km since last refill *'),
+      '120',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await settle(tester);
+    await reveal(tester, find.widgetWithText(TextFormField, 'Kilograms *'));
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Kilograms *'),
+      '8',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await settle(tester);
+    await reveal(tester, find.widgetWithText(TextFormField, 'Cost per kg *'));
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Cost per kg *'),
+      '45',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await settle(tester);
+    await reveal(tester, find.text('Save entry'));
+    await tapText(tester, 'Save entry');
+    final cng = (await sl<GetFuelEntriesByVehicle>()('it-car'))
+        .singleWhere((e) => e.energyType == EnergyType.cng);
+    expect(cng.liters, 8);
+    expect(cng.totalCost, 360);
+    expect(cng.odometer, 1770);
+    expect(find.textContaining('8.00 kg'), findsWidgets);
   });
 }

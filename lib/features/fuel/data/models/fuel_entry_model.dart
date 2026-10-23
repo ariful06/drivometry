@@ -1,5 +1,6 @@
 // lib/features/fuel/data/models/fuel_entry_model.dart
 
+import '../../../../core/constants/energy_type.dart';
 import '../../domain/entities/fuel_entry.dart';
 
 class FuelEntryModel {
@@ -20,6 +21,7 @@ class FuelEntryModel {
     this.receiptImagePath,
     this.missedPreviousFill = false,
     this.fuelLevelPercent,
+    this.energyType = EnergyType.petrol,
   });
 
   final String id;
@@ -38,6 +40,7 @@ class FuelEntryModel {
   final String? receiptImagePath;
   final bool missedPreviousFill;
   final double? fuelLevelPercent;
+  final EnergyType energyType;
 
   factory FuelEntryModel.fromMap(Map<String, dynamic> map) => FuelEntryModel(
         id: map['id'] as String,
@@ -71,6 +74,7 @@ class FuelEntryModel {
         fuelLevelPercent: map['fuel_level_percent'] != null
             ? (map['fuel_level_percent'] as num).toDouble()
             : null,
+        energyType: EnergyType.fromName(map['energy_type']),
       );
 
   Map<String, dynamic> toMap() => {
@@ -90,6 +94,7 @@ class FuelEntryModel {
         'receipt_image_path': receiptImagePath,
         'missed_previous_fill': missedPreviousFill ? 1 : 0,
         'fuel_level_percent': fuelLevelPercent,
+        'energy_type': energyType.name,
       };
 
   factory FuelEntryModel.fromEntity(FuelEntry e) => FuelEntryModel(
@@ -109,6 +114,7 @@ class FuelEntryModel {
         receiptImagePath: e.receiptImagePath,
         missedPreviousFill: e.missedPreviousFill,
         fuelLevelPercent: e.fuelLevelPercent,
+        energyType: e.energyType,
       );
 
   FuelEntry toEntity() => FuelEntry(
@@ -128,5 +134,6 @@ class FuelEntryModel {
         receiptImagePath: receiptImagePath,
         missedPreviousFill: missedPreviousFill,
         fuelLevelPercent: fuelLevelPercent,
+        energyType: energyType,
       );
 }

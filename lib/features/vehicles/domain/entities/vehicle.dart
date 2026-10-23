@@ -1,3 +1,5 @@
+import '../../../../core/constants/energy_type.dart';
+
 class Vehicle {
   const Vehicle({
     required this.id,
@@ -19,6 +21,8 @@ class Vehicle {
     this.fitnessExpiryDate,
     this.isRental = false,
     this.manualOdometer,
+    this.fuelType = EnergyType.petrol,
+    this.secondaryFuelType,
   });
 
   final String id;
@@ -56,6 +60,19 @@ class Vehicle {
   /// odometer never falls below it when fills are edited or deleted.
   final double? manualOdometer;
 
+  /// Main fuel; tank capacity and "full tank" refer to it.
+  final EnergyType fuelType;
+
+  /// Second fuel of a bi-fuel vehicle (e.g. petrol + CNG), if any.
+  final EnergyType? secondaryFuelType;
+
+  /// Fuels this vehicle can log, main first.
+  List<EnergyType> get energyTypes => [
+        fuelType,
+        if (secondaryFuelType != null && secondaryFuelType != fuelType)
+          secondaryFuelType!,
+      ];
+
   Vehicle copyWith({
     String? id,
     String? name,
@@ -76,6 +93,8 @@ class Vehicle {
     DateTime? fitnessExpiryDate,
     bool? isRental,
     double? manualOdometer,
+    EnergyType? fuelType,
+    EnergyType? secondaryFuelType,
   }) =>
       Vehicle(
         id: id ?? this.id,
@@ -98,5 +117,7 @@ class Vehicle {
         fitnessExpiryDate: fitnessExpiryDate ?? this.fitnessExpiryDate,
         isRental: isRental ?? this.isRental,
         manualOdometer: manualOdometer ?? this.manualOdometer,
+        fuelType: fuelType ?? this.fuelType,
+        secondaryFuelType: secondaryFuelType ?? this.secondaryFuelType,
       );
 }

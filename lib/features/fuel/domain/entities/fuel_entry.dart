@@ -1,3 +1,5 @@
+import '../../../../core/constants/energy_type.dart';
+
 class FuelEntry {
   const FuelEntry({
     required this.id,
@@ -16,6 +18,7 @@ class FuelEntry {
     this.receiptImagePath,
     this.missedPreviousFill = false,
     this.fuelLevelPercent,
+    this.energyType = EnergyType.petrol,
   });
 
   final String id;
@@ -50,6 +53,10 @@ class FuelEntry {
   /// consumption be estimated from tank capacity when no full tank is logged.
   final double? fuelLevelPercent;
 
+  /// What was filled; [liters] and [costPerLiter] are in this type's unit
+  /// (L, kg or kWh) despite their names.
+  final EnergyType energyType;
+
   /// Copy with stored consumption replaced (allows clearing to null).
   FuelEntry withConsumption(double? kmPerLiter) => FuelEntry(
         id: id,
@@ -68,6 +75,7 @@ class FuelEntry {
         receiptImagePath: receiptImagePath,
         missedPreviousFill: missedPreviousFill,
         fuelLevelPercent: fuelLevelPercent,
+        energyType: energyType,
       );
 
   FuelEntry copyWith({
@@ -87,6 +95,7 @@ class FuelEntry {
     String? receiptImagePath,
     bool? missedPreviousFill,
     double? fuelLevelPercent,
+    EnergyType? energyType,
   }) =>
       FuelEntry(
         id: id ?? this.id,
@@ -105,5 +114,6 @@ class FuelEntry {
         receiptImagePath: receiptImagePath ?? this.receiptImagePath,
         missedPreviousFill: missedPreviousFill ?? this.missedPreviousFill,
         fuelLevelPercent: fuelLevelPercent ?? this.fuelLevelPercent,
+        energyType: energyType ?? this.energyType,
       );
 }

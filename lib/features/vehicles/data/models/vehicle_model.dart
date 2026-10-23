@@ -1,5 +1,6 @@
 // lib/features/vehicles/data/models/vehicle_model.dart
 
+import '../../../../core/constants/energy_type.dart';
 import '../../domain/entities/vehicle.dart';
 
 class VehicleModel {
@@ -23,6 +24,8 @@ class VehicleModel {
     this.fitnessExpiryDate,
     this.isRental = false,
     this.manualOdometer,
+    this.fuelType = EnergyType.petrol,
+    this.secondaryFuelType,
   });
 
   final String id;
@@ -44,6 +47,8 @@ class VehicleModel {
   final DateTime? fitnessExpiryDate;
   final bool isRental;
   final double? manualOdometer;
+  final EnergyType fuelType;
+  final EnergyType? secondaryFuelType;
 
   factory VehicleModel.fromMap(Map<String, dynamic> map) => VehicleModel(
         id: map['id'] as String,
@@ -69,6 +74,10 @@ class VehicleModel {
             : null,
         isRental: (map['is_rental'] as int?) == 1,
         manualOdometer: (map['manual_odometer'] as num?)?.toDouble(),
+        fuelType: EnergyType.fromName(map['fuel_type']),
+        secondaryFuelType: map['secondary_fuel_type'] == null
+            ? null
+            : EnergyType.fromName(map['secondary_fuel_type']),
       );
 
   Map<String, dynamic> toMap() => {
@@ -91,6 +100,8 @@ class VehicleModel {
         'fitness_expiry_date': fitnessExpiryDate?.toIso8601String(),
         'is_rental': isRental ? 1 : 0,
         'manual_odometer': manualOdometer,
+        'fuel_type': fuelType.name,
+        'secondary_fuel_type': secondaryFuelType?.name,
       };
 
   factory VehicleModel.fromEntity(Vehicle e) => VehicleModel(
@@ -113,6 +124,8 @@ class VehicleModel {
         fitnessExpiryDate: e.fitnessExpiryDate,
         isRental: e.isRental,
         manualOdometer: e.manualOdometer,
+        fuelType: e.fuelType,
+        secondaryFuelType: e.secondaryFuelType,
       );
 
   Vehicle toEntity() => Vehicle(
@@ -135,5 +148,7 @@ class VehicleModel {
         fitnessExpiryDate: fitnessExpiryDate,
         isRental: isRental,
         manualOdometer: manualOdometer,
+        fuelType: fuelType,
+        secondaryFuelType: secondaryFuelType,
       );
 }

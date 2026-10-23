@@ -1,5 +1,6 @@
 // lib/features/fuel/domain/services/fuel_consumption_calculator.dart
 
+import '../../../../core/constants/energy_type.dart';
 import '../entities/fuel_entry.dart';
 
 /// One measured consumption period, attributed to the fill that closes it.
@@ -11,6 +12,7 @@ class FuelConsumptionSegment {
     required this.liters,
     required this.fillCount,
     this.isEstimated = false,
+    this.energyType = EnergyType.petrol,
   });
 
   /// Fill that opened the period (its liters are NOT counted).
@@ -32,6 +34,9 @@ class FuelConsumptionSegment {
   /// chain (no full-tank baseline was available).
   final bool isEstimated;
 
+  /// Fuel measured; [liters] and [kmPerLiter] are in its unit (L, kg, kWh).
+  final EnergyType energyType;
+
   double get kmPerLiter => distanceKm / liters;
 
   double get litersPer100Km => liters / distanceKm * 100;
@@ -52,7 +57,10 @@ class FuelConsumptionSegment {
 ///    tank, or after a chain break), two consecutive fills whose gauge level
 ///    after filling is known (full tank = 100 %) give
 ///    `used = capacity × prevLevel + liters − capacity × currentLevel`.
-/// 4. **Chain break** — [FuelEntry.missedPreviousFill] or an odometer that does
+/// 4. **Energy types** — each fuel of a bi-fuel vehicle (e.g. petrol + CNG)
+///    is its own chain; fills of one type never close a period of another.
+///    Tank capacity applies to `capacityEnergyType` (all types when null).
+/// 5. **Chain break** — [FuelEntry.missedPreviousFill] or an odometer that does
 ///    not increase (reset / replaced cluster / typo) discards the queue and
 ///    restarts measuring; history before the break is left untouched.
 abstract final class FuelConsumptionCalculator {
@@ -69,7 +77,37 @@ abstract final class FuelConsumptionCalculator {
   static List<FuelConsumptionSegment> segments(
     Iterable<FuelEntry> entries, {
     double? tankCapacityLiters,
+    EnergyType? capacityEnergyType,
   }) {
+    final ordered = sortChronologically(entries);
+    final position = {
+      for (var i = 0; i < ordered.length; i++) ordered[i].id: i,
+    };
+    final byType = <EnergyType, List<FuelEntry>>{};
+    for (final entry in ordered) {
+      byType.putIfAbsent(entry.energyType, () => []).add(entry);
+    }
+    final result = <FuelConsumptionSegment>[
+      for (final MapEntry(key: type, value: group) in byType.entries)
+        ..._segmentsOfOneType(
+          group,
+          type,
+          capacityEnergyType == null || capacityEnergyType == type
+              ? tankCapacityLiters
+              : null,
+        ),
+    ]..sort(
+        (left, right) =>
+            position[left.endEntryId]!.compareTo(position[right.endEntryId]!),
+      );
+    return result;
+  }
+
+  static List<FuelConsumptionSegment> _segmentsOfOneType(
+    List<FuelEntry> entries,
+    EnergyType energyType,
+    double? tankCapacityLiters,
+  ) {
     final result = <FuelConsumptionSegment>[];
     final capacity = (tankCapacityLiters ?? 0) > 0 ? tankCapacityLiters : null;
 
@@ -78,7 +116,7 @@ abstract final class FuelConsumptionCalculator {
     var queuedLiters = 0.0;
     var queuedFills = 0;
 
-    for (final entry in sortChronologically(entries)) {
+    for (final entry in entries) {
       final chainBroken = entry.missedPreviousFill ||
           (previous != null && entry.odometer <= previous.odometer);
       if (chainBroken) {
@@ -99,6 +137,7 @@ abstract final class FuelConsumptionCalculator {
                 distanceKm: distanceKm,
                 liters: queuedLiters,
                 fillCount: queuedFills,
+                energyType: energyType,
               ),
             );
           }
@@ -138,6 +177,7 @@ abstract final class FuelConsumptionCalculator {
       liters: litersUsed,
       fillCount: 1,
       isEstimated: true,
+      energyType: current.energyType,
     );
   }
 
@@ -152,9 +192,14 @@ abstract final class FuelConsumptionCalculator {
   static Map<String, FuelConsumptionSegment> segmentsByEntryId(
     Iterable<FuelEntry> entries, {
     double? tankCapacityLiters,
+    EnergyType? capacityEnergyType,
   }) {
     return byEndEntryId(
-      segments(entries, tankCapacityLiters: tankCapacityLiters),
+      segments(
+        entries,
+        tankCapacityLiters: tankCapacityLiters,
+        capacityEnergyType: capacityEnergyType,
+      ),
     );
   }
 
@@ -164,16 +209,24 @@ abstract final class FuelConsumptionCalculator {
     return {for (final segment in segments) segment.endEntryId: segment};
   }
 
-  /// Distance-weighted average km/L over all measured periods
-  /// (total km ÷ total liters, not a mean of per-fill values).
+  /// Distance-weighted average over all measured periods of [energyType]
+  /// (total km ÷ total amount, not a mean of per-fill values). Null
+  /// [energyType] averages every period, which only makes sense when all
+  /// fills share one unit.
   static double? averageKmPerLiter(
     Iterable<FuelEntry> entries, {
     double? tankCapacityLiters,
+    EnergyType? capacityEnergyType,
+    EnergyType? energyType,
   }) {
     var distanceKm = 0.0;
     var liters = 0.0;
-    for (final segment
-        in segments(entries, tankCapacityLiters: tankCapacityLiters)) {
+    for (final segment in segments(
+      entries,
+      tankCapacityLiters: tankCapacityLiters,
+      capacityEnergyType: capacityEnergyType,
+    )) {
+      if (energyType != null && segment.energyType != energyType) continue;
       distanceKm += segment.distanceKm;
       liters += segment.liters;
     }
@@ -185,10 +238,12 @@ abstract final class FuelConsumptionCalculator {
     Iterable<FuelEntry> history,
     FuelEntry draft, {
     double? tankCapacityLiters,
+    EnergyType? capacityEnergyType,
   }) {
     return segmentsByEntryId(
       [...history, draft],
       tankCapacityLiters: tankCapacityLiters,
+      capacityEnergyType: capacityEnergyType,
     )[draft.id];
   }
 }

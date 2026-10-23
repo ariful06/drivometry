@@ -73,6 +73,7 @@ class RecalculateFuelConsumption {
     final segmentsByEntryId = FuelConsumptionCalculator.segmentsByEntryId(
       entries,
       tankCapacityLiters: vehicle?.tankCapacityLiters,
+      capacityEnergyType: vehicle?.fuelType,
     );
     final changed = <FuelEntry>[
       for (final entry in entries)

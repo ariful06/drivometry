@@ -782,7 +782,10 @@ class _VehicleAnalyticsCard extends StatelessWidget {
           if (data.averageEfficiency != null)
             InfoRow(
               label: 'Avg efficiency',
-              value: Formatters.formatFuelEfficiency(data.averageEfficiency!),
+              value: Formatters.formatEfficiencyFor(
+                data.averageEfficiency!,
+                data.efficiencyEnergyType,
+              ),
               valueColor: colors.success,
             ),
           if (data.costPerKm != null)

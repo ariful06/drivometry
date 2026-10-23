@@ -1,5 +1,6 @@
 // lib/features/vehicles/presentation/pages/add_vehicle_page.dart
 
+import '../../../../core/constants/energy_type.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -40,6 +41,8 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
   String? _selectedMake;
   String? _selectedColor;
   bool _isRental = false;
+  EnergyType _fuelType = EnergyType.petrol;
+  EnergyType? _secondaryFuelType;
   bool _isSaving = false;
   String? _registrationPath;
   String? _taxTokenPath;
@@ -64,6 +67,8 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
         _makeOtherCtrl.text = v.make;
       }
       _isRental = v.isRental;
+      _fuelType = v.fuelType;
+      _secondaryFuelType = v.secondaryFuelType;
       _modelCtrl.text = v.model;
       _selectedYear = v.year.clamp(kVehicleYearMin, kVehicleYearMax);
       _plateCtrl.text = v.licensePlate;
@@ -72,8 +77,7 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
         _tankCapacityCtrl.text = v.tankCapacityLiters!.toStringAsFixed(0);
       }
       final col = v.color?.trim();
-      _selectedColor =
-          (col == null || col.isEmpty) ? null : col;
+      _selectedColor = (col == null || col.isEmpty) ? null : col;
       _notesCtrl.text = v.notes ?? '';
       _selectedType = v.type;
       _registrationPath = v.registrationImagePath;
@@ -274,8 +278,7 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
               controller: _plateCtrl,
               label: 'License Plate *',
               hint: 'e.g. DHA-1234',
-              validator: (v) =>
-              v == null || v.isEmpty ? 'Required' : null,
+              validator: (v) => v == null || v.isEmpty ? 'Required' : null,
             ),
             const SizedBox(height: 20),
             const _SectionLabel(label: 'Odometer'),
@@ -285,20 +288,74 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
               label: 'Current Odometer (km) *',
               hint: 'e.g. 15000',
               keyboardType:
-              const TextInputType.numberWithOptions(decimal: true),
+                  const TextInputType.numberWithOptions(decimal: true),
               validator: (v) {
                 if (v == null || v.isEmpty) return 'Required';
                 if (double.tryParse(v) == null) return 'Invalid number';
                 return null;
               },
             ),
+            const SizedBox(height: 20),
+            const _SectionLabel(label: 'Fuel'),
+            const SizedBox(height: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<EnergyType>(
+                    key: const ValueKey('vehicle_fuel_type'),
+                    value: _fuelType,
+                    decoration: const InputDecoration(labelText: 'Main fuel'),
+                    isExpanded: true,
+                    items: [
+                      for (final type in EnergyType.values)
+                        DropdownMenuItem(value: type, child: Text(type.label)),
+                    ],
+                    onChanged: (type) => setState(() {
+                      _fuelType = type ?? EnergyType.petrol;
+                      if (_secondaryFuelType == _fuelType) {
+                        _secondaryFuelType = null;
+                      }
+                    }),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: DropdownButtonFormField<EnergyType?>(
+                    key: const ValueKey('vehicle_secondary_fuel_type'),
+                    value: _secondaryFuelType,
+                    decoration: const InputDecoration(
+                      labelText: 'Second fuel',
+                      helperText: 'For bi-fuel cars',
+                    ),
+                    isExpanded: true,
+                    items: [
+                      const DropdownMenuItem<EnergyType?>(
+                        value: null,
+                        child: Text('None'),
+                      ),
+                      for (final type in EnergyType.values)
+                        if (type != _fuelType)
+                          DropdownMenuItem<EnergyType?>(
+                            value: type,
+                            child: Text(type.label),
+                          ),
+                    ],
+                    onChanged: (type) =>
+                        setState(() => _secondaryFuelType = type),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 12),
             _Field(
               controller: _tankCapacityCtrl,
-              label: 'Tank capacity (L)',
+              label: _fuelType == EnergyType.electric
+                  ? 'Battery capacity (kWh)'
+                  : 'Tank capacity (${_fuelType.unit})',
               hint: 'e.g. 45',
               keyboardType:
-              const TextInputType.numberWithOptions(decimal: true),
+                  const TextInputType.numberWithOptions(decimal: true),
               validator: (v) {
                 if (v == null || v.isEmpty) return null;
                 final n = double.tryParse(v);
@@ -319,14 +376,16 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
             _DocumentSection(
               label: 'Registration',
               imagePath: _registrationPath,
-              onPick: () => _pickDocument('registration', (path) => setState(() => _registrationPath = path)),
+              onPick: () => _pickDocument('registration',
+                  (path) => setState(() => _registrationPath = path)),
               onRemove: () => setState(() => _registrationPath = null),
             ),
             const SizedBox(height: 12),
             _DocumentSection(
               label: 'Tax token',
               imagePath: _taxTokenPath,
-              onPick: () => _pickDocument('tax_token', (path) => setState(() => _taxTokenPath = path)),
+              onPick: () => _pickDocument(
+                  'tax_token', (path) => setState(() => _taxTokenPath = path)),
               onRemove: () => setState(() => _taxTokenPath = null),
             ),
             if (_showFitness) ...[
@@ -334,7 +393,8 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
               _DocumentSection(
                 label: 'Fitness certificate',
                 imagePath: _fitnessPath,
-                onPick: () => _pickDocument('fitness', (path) => setState(() => _fitnessPath = path)),
+                onPick: () => _pickDocument(
+                    'fitness', (path) => setState(() => _fitnessPath = path)),
                 onRemove: () => setState(() => _fitnessPath = null),
               ),
               const SizedBox(height: 8),
@@ -351,7 +411,8 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
                     children: [
                       if (_fitnessExpiry != null)
                         TextButton(
-                          onPressed: () => setState(() => _fitnessExpiry = null),
+                          onPressed: () =>
+                              setState(() => _fitnessExpiry = null),
                           child: const Text('Clear'),
                         ),
                       IconButton(
@@ -369,13 +430,13 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
               onPressed: _isSaving ? null : _submit,
               child: _isSaving
                   ? const SizedBox(
-                height: 20,
-                width: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              )
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
                   : const Text('Save Vehicle'),
             ),
             const SizedBox(height: 32),
@@ -385,7 +446,8 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
     );
   }
 
-  Future<void> _pickDocument(String docType, void Function(String path) onPicked) async {
+  Future<void> _pickDocument(
+      String docType, void Function(String path) onPicked) async {
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
       builder: (context) => SafeArea(
@@ -456,7 +518,8 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
 
   Future<void> _pickFitnessExpiry() async {
     final now = DateTime.now();
-    final initial = _fitnessExpiry ?? DateTime(now.year + 1, now.month, now.day);
+    final initial =
+        _fitnessExpiry ?? DateTime(now.year + 1, now.month, now.day);
     final picked = await showDatePicker(
       context: context,
       initialDate: initial,
@@ -475,8 +538,7 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
 
     try {
       final tankStr = _tankCapacityCtrl.text.trim();
-      final tankCapacity =
-          tankStr.isEmpty ? null : double.tryParse(tankStr);
+      final tankCapacity = tankStr.isEmpty ? null : double.tryParse(tankStr);
       final existing = widget.vehicle;
       final isEdit = existing != null;
       final vehicleId = existing?.id ?? const Uuid().v4();
@@ -547,6 +609,9 @@ class _AddVehiclePageState extends State<AddVehiclePage> {
         fitnessImagePath: fitnessImagePath,
         fitnessExpiryDate: fitnessExpiryDate,
         isRental: _isRental,
+        manualOdometer: existing?.manualOdometer,
+        fuelType: _fuelType,
+        secondaryFuelType: _secondaryFuelType,
       );
 
       if (isEdit) {
@@ -622,50 +687,50 @@ class _TypeSelector extends StatelessWidget {
       children: types
           .map(
             (t) => Expanded(
-          child: GestureDetector(
-            onTap: () => onChanged(t),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              margin: const EdgeInsets.symmetric(horizontal: 4),
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: selected == t
-                    ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context)
-                    .colorScheme
-                    .primary
-                    .withOpacity(0.08),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Column(
-                children: [
-                  Icon(
-                    t == AppConstants.vehicleTypeBike
-                        ? Icons.two_wheeler
-                        : t == AppConstants.vehicleTypeCar
-                        ? Icons.directions_car
-                        : Icons.commute,
+              child: GestureDetector(
+                onTap: () => onChanged(t),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  margin: const EdgeInsets.symmetric(horizontal: 4),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
                     color: selected == t
-                        ? Colors.white
-                        : Theme.of(context).colorScheme.primary,
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    t,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: selected == t
-                          ? Colors.white
-                          : Theme.of(context).colorScheme.primary,
-                    ),
+                  child: Column(
+                    children: [
+                      Icon(
+                        t == AppConstants.vehicleTypeBike
+                            ? Icons.two_wheeler
+                            : t == AppConstants.vehicleTypeCar
+                                ? Icons.directions_car
+                                : Icons.commute,
+                        color: selected == t
+                            ? Colors.white
+                            : Theme.of(context).colorScheme.primary,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        t,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: selected == t
+                              ? Colors.white
+                              : Theme.of(context).colorScheme.primary,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
-          ),
-        ),
-      )
+          )
           .toList(),
     );
   }
@@ -680,10 +745,10 @@ class _SectionLabel extends StatelessWidget {
     return Text(
       label.toUpperCase(),
       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-        fontWeight: FontWeight.w700,
-        letterSpacing: 1.2,
-        color: Theme.of(context).colorScheme.primary,
-      ),
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.2,
+            color: Theme.of(context).colorScheme.primary,
+          ),
     );
   }
 }

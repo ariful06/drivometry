@@ -2,6 +2,7 @@
 
 import 'package:intl/intl.dart';
 
+import '../constants/energy_type.dart';
 import '../settings/app_settings.dart';
 
 class Formatters {
@@ -64,6 +65,40 @@ class Formatters {
 
   static String formatLiters(double liters) =>
       '${volumeToDisplay(liters).toStringAsFixed(2)} ${_settings.volumeLabel}';
+
+  /// Amount of [type]: litres follow the volume setting; kg and kWh as is.
+  static String formatQuantity(double amount, EnergyType type) => type.isLiquid
+      ? formatLiters(amount)
+      : '${amount.toStringAsFixed(2)} ${type.unit}';
+
+  /// Efficiency in distance per unit of [type], e.g. `km/L`, `mpg`, `km/kg`.
+  static String formatEfficiencyFor(double kmPerUnit, EnergyType type) {
+    if (type.isLiquid) return formatFuelEfficiency(kmPerUnit);
+    final value = distanceToDisplay(kmPerUnit);
+    return '${value.toStringAsFixed(2)} ${_settings.distanceLabel}/${type.unit}';
+  }
+
+  /// Price per unit of [type], e.g. `৳ 110.00/L`, `৳ 45.00/kg`.
+  static String formatUnitPrice(double pricePerUnit, EnergyType type) {
+    final perUnit = type.isLiquid && _settings.volumeUnit == VolumeUnit.gallon
+        ? pricePerUnit * AppSettings.litersPerGallon
+        : pricePerUnit;
+    final unit = type.isLiquid ? _settings.volumeLabel : type.unit;
+    return '${_settings.currencySymbol} ${perUnit.toStringAsFixed(2)}/$unit';
+  }
+
+  /// Short efficiency unit for [type], e.g. `km/L`, `mpg`, `km/kWh`.
+  static String efficiencyUnitFor(EnergyType type) =>
+      formatEfficiencyFor(1, type).split(' ').last;
+
+  /// Usage per 100 distance units, e.g. `6.5 L/100 km`, `12.0 kWh/100 km`.
+  static String formatPer100(double amountPer100Km, EnergyType type) {
+    final unit = type.isLiquid ? _settings.volumeLabel : type.unit;
+    final amount = type.isLiquid
+        ? volumeToDisplay(amountPer100Km) / distanceToDisplay(1)
+        : amountPer100Km / distanceToDisplay(1);
+    return '${amount.toStringAsFixed(1)} $unit/100 ${_settings.distanceLabel}';
+  }
 
   static String formatNumber(double value) =>
       NumberFormat('#,##0.##').format(value);

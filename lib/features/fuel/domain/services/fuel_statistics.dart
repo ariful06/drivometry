@@ -1,5 +1,6 @@
 // lib/features/fuel/domain/services/fuel_statistics.dart
 
+import '../../../../core/constants/energy_type.dart';
 import '../entities/fuel_entry.dart';
 import 'fuel_consumption_calculator.dart';
 
@@ -38,6 +39,7 @@ class FuelStatistics {
     this.fuelCostPerKm,
     this.best,
     this.worst,
+    this.energyType = EnergyType.petrol,
   });
 
   final int fillCount;
@@ -57,6 +59,9 @@ class FuelStatistics {
   final FuelTrendPoint? best;
   final FuelTrendPoint? worst;
 
+  /// Fuel the amounts, prices and economy refer to.
+  final EnergyType energyType;
+
   bool get isEmpty => fillCount == 0;
 
   static FuelStatistics compute(
@@ -64,6 +69,8 @@ class FuelStatistics {
     required DateTime from,
     required DateTime to,
     double? tankCapacityLiters,
+    EnergyType? capacityEnergyType,
+    EnergyType energyType = EnergyType.petrol,
   }) {
     final all = FuelConsumptionCalculator.sortChronologically(entries);
     final byId = {for (final e in all) e.id: e};
@@ -73,11 +80,15 @@ class FuelStatistics {
           !day.isAfter(DateTime(to.year, to.month, to.day));
     }
 
-    final inside = all.where((e) => inRange(e.date)).toList();
+    final allInside = all.where((e) => inRange(e.date)).toList();
+    // Amounts and prices only add up within one fuel; cost per km spans all
+    // fuels, since every fill pays for the distance driven.
+    final inside = allInside.where((e) => e.energyType == energyType).toList();
     final totalLiters = inside.fold<double>(0, (sum, e) => sum + e.liters);
     final totalCost = inside.fold<double>(0, (sum, e) => sum + e.totalCost);
+    final allCost = allInside.fold<double>(0, (sum, e) => sum + e.totalCost);
     final distanceKm =
-        inside.fold<double>(0, (sum, e) => sum + (e.distanceDriven ?? 0));
+        allInside.fold<double>(0, (sum, e) => sum + (e.distanceDriven ?? 0));
 
     final months = <DateTime, (double cost, double liters)>{};
     for (final e in inside) {
@@ -98,7 +109,9 @@ class FuelStatistics {
     for (final segment in FuelConsumptionCalculator.segments(
       all,
       tankCapacityLiters: tankCapacityLiters,
+      capacityEnergyType: capacityEnergyType,
     )) {
+      if (segment.energyType != energyType) continue;
       final closing = byId[segment.endEntryId];
       if (closing == null || !inRange(closing.date)) continue;
       trend.add(FuelTrendPoint(
@@ -121,11 +134,12 @@ class FuelStatistics {
       totalCost: totalCost,
       distanceKm: distanceKm,
       averagePricePerLiter: totalLiters > 0 ? totalCost / totalLiters : null,
-      fuelCostPerKm: distanceKm > 0 ? totalCost / distanceKm : null,
+      fuelCostPerKm: distanceKm > 0 ? allCost / distanceKm : null,
       monthly: monthly,
       trend: trend,
       best: best,
       worst: worst,
+      energyType: energyType,
     );
   }
 }

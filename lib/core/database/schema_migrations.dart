@@ -1,14 +1,43 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
+import 'hive_storage.dart';
+
 const String kMetaBox = 'meta';
 const String _schemaVersionKey = 'schema_version';
 
 /// Current data schema version. Bump it and add an entry to [kMigrations]
 /// whenever stored data needs a one-time upgrade.
-const int kSchemaVersion = 1;
+const int kSchemaVersion = 2;
 
 /// Migrations keyed by the version they upgrade *to*. Each runs once, in order.
-final Map<int, Future<void> Function()> kMigrations = {};
+final Map<int, Future<void> Function()> kMigrations = {
+  2: () => stampEnergyTypes(
+        fuelEntries: Hive.box<dynamic>(kFuelEntriesBox),
+        vehicles: Hive.box<dynamic>(kVehiclesBox),
+      ),
+};
+
+/// v2: fills and vehicles get an explicit energy type. Everything recorded
+/// before then was petrol in litres. Existing values are kept, so re-running
+/// is a no-op.
+Future<void> stampEnergyTypes({
+  required Box<dynamic> fuelEntries,
+  required Box<dynamic> vehicles,
+}) async {
+  Future<void> stamp(Box<dynamic> box, String key) async {
+    final updates = <dynamic, Map<String, dynamic>>{};
+    for (final id in box.keys) {
+      final row = box.get(id);
+      if (row is Map && row[key] == null) {
+        updates[id] = {...Map<String, dynamic>.from(row), key: 'petrol'};
+      }
+    }
+    await box.putAll(updates);
+  }
+
+  await stamp(fuelEntries, 'energy_type');
+  await stamp(vehicles, 'fuel_type');
+}
 
 /// Runs pending migrations on [meta] up to [target], saving progress after each
 /// step so a failure resumes from the last good version.

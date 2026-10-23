@@ -1,3 +1,4 @@
+import '../../../../core/constants/energy_type.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -125,37 +126,42 @@ class _VehicleDashboardTabsViewState extends State<_VehicleDashboardTabsView>
           ),
         ),
       ),
-      body: Column(
-        children: [
-          Container(
-            color: theme.appBarTheme.backgroundColor,
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-            child: InkWell(
-              onTap: () async {
-                await context.push(
-                  '/vehicles/${_currentVehicle.id}/details',
-                  extra: _currentVehicle,
-                );
-                // Details can edit the vehicle (tank capacity, odometer…).
-                if (mounted) await _refetchVehicle();
-              },
-              borderRadius: BorderRadius.circular(16),
-              child: _VehicleHeaderCard(
-                vehicle: _currentVehicle,
-                onUpdateOdometer: _updateOdometer,
+      body: BlocListener<FuelCubit, FuelState>(
+        // Editing or deleting a fill can move the odometer.
+        listenWhen: (_, state) => state is FuelLoaded,
+        listener: (_, __) => _refetchVehicle(),
+        child: Column(
+          children: [
+            Container(
+              color: theme.appBarTheme.backgroundColor,
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+              child: InkWell(
+                onTap: () async {
+                  await context.push(
+                    '/vehicles/${_currentVehicle.id}/details',
+                    extra: _currentVehicle,
+                  );
+                  // Details can edit the vehicle (tank capacity, odometer…).
+                  if (mounted) await _refetchVehicle();
+                },
+                borderRadius: BorderRadius.circular(16),
+                child: _VehicleHeaderCard(
+                  vehicle: _currentVehicle,
+                  onUpdateOdometer: _updateOdometer,
+                ),
               ),
             ),
-          ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _FuelTab(vehicle: _currentVehicle),
-                _MaintenanceTab(vehicle: _currentVehicle),
-              ],
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _FuelTab(vehicle: _currentVehicle),
+                  _MaintenanceTab(vehicle: _currentVehicle),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(
@@ -164,6 +170,10 @@ class _VehicleDashboardTabsViewState extends State<_VehicleDashboardTabsView>
             width: double.infinity,
             child: FilledButton.icon(
               onPressed: () async {
+                // Forms measure distance from the saved odometer; never hand
+                // them a stale copy.
+                await _refetchVehicle();
+                if (!mounted) return;
                 if (_tabController.index == 0) {
                   await context.push(
                     '/vehicles/${_currentVehicle.id}/fuel/add',
@@ -490,6 +500,7 @@ class _FuelTab extends StatelessWidget {
                   entries: entries,
                   totalCost: totalCost,
                   tankCapacityLiters: vehicle.tankCapacityLiters,
+                  capacityEnergyType: vehicle.fuelType,
                 ),
         };
       },
@@ -502,10 +513,12 @@ class _FuelList extends StatelessWidget {
     required this.entries,
     required this.totalCost,
     this.tankCapacityLiters,
+    this.capacityEnergyType,
   });
   final List entries;
   final double totalCost;
   final double? tankCapacityLiters;
+  final EnergyType? capacityEnergyType;
 
   @override
   Widget build(BuildContext context) {
@@ -513,6 +526,7 @@ class _FuelList extends StatelessWidget {
     final segments = FuelConsumptionCalculator.segments(
       entries.cast<FuelEntry>(),
       tankCapacityLiters: tankCapacityLiters,
+      capacityEnergyType: capacityEnergyType,
     );
     final consumptionByEntryId = FuelConsumptionCalculator.byEndEntryId(
       segments,
@@ -529,9 +543,7 @@ class _FuelList extends StatelessWidget {
               children: [
                 if (latestConsumption != null) ...[
                   _FuelHeroInsight(
-                    mileagePerLiter: latestConsumption.kmPerLiter,
-                    distanceDriven: latestConsumption.distanceKm,
-                    fuelRefill: latestConsumption.liters,
+                    segment: latestConsumption,
                     colors: colors,
                   ),
                   const SizedBox(height: 20),
@@ -581,15 +593,8 @@ class _FuelList extends StatelessWidget {
 
 /// Hero insight: one big number (latest km/L) so users get the key metric at a glance.
 class _FuelHeroInsight extends StatelessWidget {
-  const _FuelHeroInsight({
-    required this.mileagePerLiter,
-    required this.distanceDriven,
-    required this.fuelRefill,
-    required this.colors,
-  });
-  final double mileagePerLiter;
-  final double distanceDriven;
-  final double fuelRefill;
+  const _FuelHeroInsight({required this.segment, required this.colors});
+  final FuelConsumptionSegment segment;
   final AppColors colors;
 
   @override
@@ -622,7 +627,9 @@ class _FuelHeroInsight extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Last full-tank consumption',
+            segment.energyType == EnergyType.petrol
+                ? 'Last full-tank consumption'
+                : 'Last ${segment.energyType.label} consumption',
             style: theme.textTheme.labelLarge?.copyWith(
               color: colors.textSecondary,
               fontWeight: FontWeight.w500,
@@ -635,8 +642,9 @@ class _FuelHeroInsight extends StatelessWidget {
             textBaseline: TextBaseline.alphabetic,
             children: [
               Text(
-                Formatters.formatFuelEfficiency(
-                  mileagePerLiter,
+                Formatters.formatEfficiencyFor(
+                  segment.kmPerLiter,
+                  segment.energyType,
                 ).split(' ').first,
                 style: theme.textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w800,
@@ -646,7 +654,7 @@ class _FuelHeroInsight extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Text(
-                'km/L',
+                Formatters.efficiencyUnitFor(segment.energyType),
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                   color: colors.maintenanceColor.withOpacity(0.9),
@@ -656,7 +664,9 @@ class _FuelHeroInsight extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            '${Formatters.formatDistance(distanceDriven)} driven · ${Formatters.formatLiters(fuelRefill)} since previous full tank',
+            '${Formatters.formatDistance(segment.distanceKm)} driven · '
+            '${Formatters.formatQuantity(segment.liters, segment.energyType)} '
+            'since previous full tank',
             style: theme.textTheme.bodySmall?.copyWith(
               color: colors.textSecondary,
             ),

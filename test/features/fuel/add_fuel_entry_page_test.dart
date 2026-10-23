@@ -1,3 +1,4 @@
+import 'package:drivometry/core/constants/energy_type.dart';
 import 'package:drivometry/core/theme/app_theme.dart';
 import 'package:drivometry/features/fuel/domain/entities/fuel_entry.dart';
 import 'package:drivometry/features/fuel/domain/usecases/fuel_usecases.dart';
@@ -269,5 +270,54 @@ void main() {
 
     expect(find.byKey(const ValueKey('fuel_full_odo_field')), findsOneWidget);
     expect(_field('Total paid *'), findsOneWidget);
+  });
+
+  testWidgets('bi-fuel vehicle logs a CNG fill in kg at the last CNG price',
+      (tester) async {
+    final biFuel = testVehicle().copyWith(secondaryFuelType: EnergyType.cng);
+    await _pumpPage(
+      tester,
+      biFuel,
+      history: [
+        ...history,
+        FuelEntry(
+          id: 'cng0',
+          vehicleId: 'v1',
+          date: DateTime(2026, 9, 3),
+          odometer: 1100,
+          liters: 8,
+          costPerLiter: 45,
+          totalCost: 360,
+          isFullTank: true,
+          energyType: EnergyType.cng,
+        ),
+      ],
+    );
+
+    // Opens on the main fuel at the last petrol price.
+    expect(find.text('Petrol'), findsOneWidget);
+    expect(_field('Cost per liter *'), findsOneWidget);
+
+    await tester.tap(find.text('CNG'));
+    await tester.pumpAndSettle();
+
+    // CNG has no saved capacity, so the amount is typed in kg.
+    expect(find.text('Full tank (from vehicle)'), findsNothing);
+    expect(_field('Kilograms *'), findsOneWidget);
+    final price = tester.widget<TextFormField>(_field('Cost per kg *'));
+    expect(price.controller!.text, '45');
+
+    await tester.enterText(_field('Km since last refill *'), '300');
+    await tester.enterText(_field('Kilograms *'), '10');
+    await _save(tester);
+
+    final saved = fuelRepo.entries.values.singleWhere(
+      (e) => !['full1', 'partial', 'cng0'].contains(e.id),
+    );
+    expect(saved.energyType, EnergyType.cng);
+    expect(saved.liters, 10);
+    expect(saved.totalCost, 450);
+    // CNG chain: 1500 - 1100 km ÷ 10 kg.
+    expect(saved.fuelEfficiency, closeTo(40, 1e-9));
   });
 }

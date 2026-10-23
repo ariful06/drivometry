@@ -17,6 +17,7 @@ class VehicleAnalytics {
     required this.totalCost,
     required this.totalDistanceKm,
     this.averageEfficiency,
+    this.efficiencyEnergyType = EnergyType.petrol,
     this.costPerKm,
   });
   final String vehicleId;
@@ -32,6 +33,9 @@ class VehicleAnalytics {
   final double totalCost;
   final double totalDistanceKm;
   final double? averageEfficiency;
+
+  /// Unit of [averageEfficiency]: the vehicle's main fuel.
+  final EnergyType efficiencyEnergyType;
   final double? costPerKm;
 }
 

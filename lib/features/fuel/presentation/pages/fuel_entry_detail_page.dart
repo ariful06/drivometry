@@ -1,3 +1,5 @@
+import '../../../../core/constants/energy_type.dart';
+import '../../../../core/settings/app_settings.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -96,6 +98,7 @@ class _FuelEntryDetailPageState extends State<FuelEntryDetailPage> {
         consumption: FuelConsumptionCalculator.segmentsByEntryId(
           entries,
           tankCapacityLiters: vehicle?.tankCapacityLiters,
+          capacityEnergyType: vehicle?.fuelType,
         )[entry.id],
       );
       _vehicleFuture = Future.value(vehicle);
@@ -219,13 +222,18 @@ class _FuelEntryDetailPageState extends State<FuelEntryDetailPage> {
               ),
               const SizedBox(height: 24),
               _SectionTitle(theme: theme, label: 'Fill-up'),
+              if (_e.energyType != EnergyType.petrol)
+                _DetailRow(label: 'Fuel', value: _e.energyType.label),
               _DetailRow(
-                label: 'Liters',
-                value: Formatters.formatLiters(_e.liters),
+                label: 'Amount',
+                value: Formatters.formatQuantity(_e.liters, _e.energyType),
               ),
               _DetailRow(
-                label: 'Price / L',
-                value: Formatters.formatCurrency(_e.costPerLiter),
+                label: 'Price',
+                value: Formatters.formatUnitPrice(
+                  _e.costPerLiter,
+                  _e.energyType,
+                ),
               ),
               _DetailRow(
                 label: 'Total',
@@ -272,19 +280,25 @@ class _FuelEntryDetailPageState extends State<FuelEntryDetailPage> {
                   label: segment.isEstimated
                       ? 'Consumption (estimated)'
                       : 'Consumption',
-                  value: Formatters.formatFuelEfficiency(segment.kmPerLiter),
+                  value: Formatters.formatEfficiencyFor(
+                    segment.kmPerLiter,
+                    segment.energyType,
+                  ),
                   valueColor: colors.maintenanceColor,
                 ),
                 _DetailRow(
-                  label: 'Per 100 km',
-                  value: '${segment.litersPer100Km.toStringAsFixed(1)} L',
+                  label: 'Per 100 ${AppSettings.instance.distanceLabel}',
+                  value: Formatters.formatPer100(
+                    segment.litersPer100Km,
+                    segment.energyType,
+                  ),
                 ),
                 _DetailRow(
                   label: segment.isEstimated
                       ? 'Since previous fill'
                       : 'Since last full tank',
                   value: '${Formatters.formatDistance(segment.distanceKm)} · '
-                      '${Formatters.formatLiters(segment.liters)}'
+                      '${Formatters.formatQuantity(segment.liters, segment.energyType)}'
                       '${segment.includesPartialFills ? ' (${segment.fillCount} fills)' : ''}',
                 ),
               ] else

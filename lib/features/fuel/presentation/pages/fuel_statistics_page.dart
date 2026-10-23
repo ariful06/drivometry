@@ -2,7 +2,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/settings/app_settings.dart';
+import '../../../../core/constants/energy_type.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_widgets.dart';
@@ -36,18 +36,22 @@ class FuelStatisticsPage extends StatefulWidget {
 
 class _FuelStatisticsPageState extends State<FuelStatisticsPage> {
   _StatsRange _range = _StatsRange.last12Months;
-  late final Future<FuelStatistics Function(_StatsRange)> _loader = _load();
+  late EnergyType _energyType = widget.vehicle.fuelType;
+  late final Future<FuelStatistics Function(_StatsRange, EnergyType)> _loader =
+      _load();
 
-  Future<FuelStatistics Function(_StatsRange)> _load() async {
+  Future<FuelStatistics Function(_StatsRange, EnergyType)> _load() async {
     final entries =
         await sl<FuelRepository>().getFuelEntriesByVehicle(widget.vehicle.id);
-    return (range) {
+    return (range, energyType) {
       final now = DateTime.now();
       return FuelStatistics.compute(
         entries,
         from: range.from(now),
         to: now,
         tankCapacityLiters: widget.vehicle.tankCapacityLiters,
+        capacityEnergyType: widget.vehicle.fuelType,
+        energyType: energyType,
       );
     };
   }
@@ -63,7 +67,7 @@ class _FuelStatisticsPageState extends State<FuelStatisticsPage> {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
           if (!snapshot.hasData) return const LoadingOverlay();
-          final stats = snapshot.data!(_range);
+          final stats = snapshot.data!(_range, _energyType);
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -88,6 +92,19 @@ class _FuelStatisticsPageState extends State<FuelStatisticsPage> {
                     ),
                 ],
               ),
+              if (widget.vehicle.energyTypes.length > 1) ...[
+                const SizedBox(height: 12),
+                SegmentedButton<EnergyType>(
+                  segments: [
+                    for (final type in widget.vehicle.energyTypes)
+                      ButtonSegment(value: type, label: Text(type.label)),
+                  ],
+                  selected: {_energyType},
+                  showSelectedIcon: false,
+                  onSelectionChanged: (selection) =>
+                      setState(() => _energyType = selection.single),
+                ),
+              ],
               const SizedBox(height: 16),
               if (stats.isEmpty)
                 const EmptyState(
@@ -117,11 +134,13 @@ class _SummaryGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).extension<AppColors>()!;
-    final settings = AppSettings.instance;
-    // Price is stored per litre; show per displayed volume unit.
+    // Price is stored per unit of the fuel (L, kg, kWh).
     final pricePerVolume = stats.averagePricePerLiter == null
         ? '—'
-        : '${settings.currencySymbol} ${(stats.averagePricePerLiter! * (settings.volumeUnit == VolumeUnit.gallon ? AppSettings.litersPerGallon : 1)).toStringAsFixed(2)}/${settings.volumeLabel}';
+        : Formatters.formatUnitPrice(
+            stats.averagePricePerLiter!,
+            stats.energyType,
+          );
     return Column(
       children: [
         Row(
@@ -138,7 +157,10 @@ class _SummaryGrid extends StatelessWidget {
             Expanded(
               child: StatCard(
                 label: 'Fuel bought',
-                value: Formatters.formatLiters(stats.totalLiters),
+                value: Formatters.formatQuantity(
+                  stats.totalLiters,
+                  stats.energyType,
+                ),
                 icon: Icons.local_gas_station_outlined,
                 color: colors.maintenanceColor,
               ),
@@ -177,8 +199,10 @@ class _SummaryGrid extends StatelessWidget {
                 child: StatCard(
                   label: 'Best economy',
                   subtitle: Formatters.formatDate(stats.best!.date),
-                  value:
-                      Formatters.formatFuelEfficiency(stats.best!.kmPerLiter),
+                  value: Formatters.formatEfficiencyFor(
+                    stats.best!.kmPerLiter,
+                    stats.energyType,
+                  ),
                   icon: Icons.trending_up,
                   color: colors.success,
                 ),
@@ -188,8 +212,10 @@ class _SummaryGrid extends StatelessWidget {
                 child: StatCard(
                   label: 'Worst economy',
                   subtitle: Formatters.formatDate(stats.worst!.date),
-                  value:
-                      Formatters.formatFuelEfficiency(stats.worst!.kmPerLiter),
+                  value: Formatters.formatEfficiencyFor(
+                    stats.worst!.kmPerLiter,
+                    stats.energyType,
+                  ),
                   icon: Icons.trending_down,
                   color: colors.warning,
                 ),
@@ -332,7 +358,7 @@ class _EconomyTrendChart extends StatelessWidget {
     final values = [
       for (final p in trend)
         Formatters.distanceToDisplay(p.kmPerLiter) /
-            Formatters.volumeToDisplay(1),
+            (stats.energyType.isLiquid ? Formatters.volumeToDisplay(1) : 1),
     ];
     final maxY = values.reduce((a, b) => a > b ? a : b);
     final minY = values.reduce((a, b) => a < b ? a : b);

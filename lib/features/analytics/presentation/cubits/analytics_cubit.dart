@@ -1,3 +1,4 @@
+import '../../../../core/constants/energy_type.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../expenses/domain/entities/expense.dart';
 import '../../../expenses/domain/repositories/expense_repository.dart';
@@ -75,7 +76,10 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
         for (final segment in FuelConsumptionCalculator.segments(
           fuelEntries,
           tankCapacityLiters: vehicle.tankCapacityLiters,
+          capacityEnergyType: vehicle.fuelType,
         )) {
+          // Average the main fuel only; km/kg and km/L don't add up.
+          if (segment.energyType != vehicle.fuelType) continue;
           final closedOn = dateById[segment.endEntryId];
           if (closedOn == null || !_inRange(closedOn, range)) continue;
           segmentKm += segment.distanceKm;
@@ -94,6 +98,7 @@ class AnalyticsCubit extends Cubit<AnalyticsState> {
           totalCost: totalCost,
           totalDistanceKm: totalDistance,
           averageEfficiency: avgEfficiency,
+          efficiencyEnergyType: vehicle.fuelType,
           costPerKm: totalDistance > 0 ? totalCost / totalDistance : null,
         ));
       }
