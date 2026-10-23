@@ -123,6 +123,20 @@ void main() {
       expect(vehicleRepo.updated?.currentOdometer, 1300);
     });
 
+    test('deleting the latest fill keeps a manual odometer reading', () async {
+      setUpRepos();
+      vehicleRepo.updated = testVehicle(odometer: 1500).copyWith(
+        currentOdometer: 1650,
+        manualOdometer: 1650,
+      );
+      await edit(fuelRepo.entries['full2']!.copyWith(odometer: 1950));
+      expect(vehicleRepo.updated?.currentOdometer, 1950);
+
+      await remove(fuelRepo.entries['full2']!);
+
+      expect(vehicleRepo.updated?.currentOdometer, 1650);
+    });
+
     test('deleting a middle fill keeps the odometer and re-chains', () async {
       setUpRepos();
       await remove(fuelRepo.entries['partial']!);

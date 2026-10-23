@@ -22,6 +22,7 @@ class VehicleModel {
     this.fitnessImagePath,
     this.fitnessExpiryDate,
     this.isRental = false,
+    this.manualOdometer,
   });
 
   final String id;
@@ -42,6 +43,7 @@ class VehicleModel {
   final String? fitnessImagePath;
   final DateTime? fitnessExpiryDate;
   final bool isRental;
+  final double? manualOdometer;
 
   factory VehicleModel.fromMap(Map<String, dynamic> map) => VehicleModel(
         id: map['id'] as String,
@@ -66,6 +68,7 @@ class VehicleModel {
             ? DateTime.parse(map['fitness_expiry_date'] as String)
             : null,
         isRental: (map['is_rental'] as int?) == 1,
+        manualOdometer: (map['manual_odometer'] as num?)?.toDouble(),
       );
 
   Map<String, dynamic> toMap() => {
@@ -87,6 +90,7 @@ class VehicleModel {
         'fitness_image_path': fitnessImagePath,
         'fitness_expiry_date': fitnessExpiryDate?.toIso8601String(),
         'is_rental': isRental ? 1 : 0,
+        'manual_odometer': manualOdometer,
       };
 
   factory VehicleModel.fromEntity(Vehicle e) => VehicleModel(
@@ -108,6 +112,7 @@ class VehicleModel {
         fitnessImagePath: e.fitnessImagePath,
         fitnessExpiryDate: e.fitnessExpiryDate,
         isRental: e.isRental,
+        manualOdometer: e.manualOdometer,
       );
 
   Vehicle toEntity() => Vehicle(
@@ -129,5 +134,6 @@ class VehicleModel {
         fitnessImagePath: fitnessImagePath,
         fitnessExpiryDate: fitnessExpiryDate,
         isRental: isRental,
+        manualOdometer: manualOdometer,
       );
 }

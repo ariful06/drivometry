@@ -38,6 +38,7 @@ void main() {
       final saved = await update(vehicle, 1800);
 
       expect(saved.currentOdometer, 1800);
+      expect(saved.manualOdometer, 1800);
       expect(vehicleRepo.updated?.currentOdometer, 1800);
       expect(reminderChecks, 1);
     });

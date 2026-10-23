@@ -92,7 +92,10 @@ class UpdateVehicleOdometer {
 
   /// Saves [odometer]; call [check] first. Returns the updated vehicle.
   Future<Vehicle> call(Vehicle vehicle, double odometer) async {
-    final updated = vehicle.copyWith(currentOdometer: odometer);
+    final updated = vehicle.copyWith(
+      currentOdometer: odometer,
+      manualOdometer: odometer,
+    );
     await _vehicleRepository.updateVehicle(updated);
     await _onUpdated?.call();
     return updated;

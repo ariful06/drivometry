@@ -18,6 +18,7 @@ class Vehicle {
     this.fitnessImagePath,
     this.fitnessExpiryDate,
     this.isRental = false,
+    this.manualOdometer,
   });
 
   final String id;
@@ -32,18 +33,28 @@ class Vehicle {
   final DateTime createdAt;
   final String? color;
   final String? notes;
+
   /// Fuel tank capacity in liters (optional).
   final double? tankCapacityLiters;
+
   /// Local file path for registration document image (optional).
   final String? registrationImagePath;
+
   /// Local file path for tax token image (optional).
   final String? taxTokenImagePath;
+
   /// Local file path for fitness certificate image (Car / Other only).
   final String? fitnessImagePath;
+
   /// Fitness certificate expiry date (Car / Other only).
   final DateTime? fitnessExpiryDate;
+
   /// True when the vehicle is used for rental / fleet; false for personal use.
   final bool isRental;
+
+  /// Last reading entered with "Update odometer". Counts as a record, so the
+  /// odometer never falls below it when fills are edited or deleted.
+  final double? manualOdometer;
 
   Vehicle copyWith({
     String? id,
@@ -64,24 +75,28 @@ class Vehicle {
     String? fitnessImagePath,
     DateTime? fitnessExpiryDate,
     bool? isRental,
-  }) => Vehicle(
-    id: id ?? this.id,
-    name: name ?? this.name,
-    type: type ?? this.type,
-    make: make ?? this.make,
-    model: model ?? this.model,
-    year: year ?? this.year,
-    licensePlate: licensePlate ?? this.licensePlate,
-    initialOdometer: initialOdometer ?? this.initialOdometer,
-    currentOdometer: currentOdometer ?? this.currentOdometer,
-    createdAt: createdAt ?? this.createdAt,
-    color: color ?? this.color,
-    notes: notes ?? this.notes,
-    tankCapacityLiters: tankCapacityLiters ?? this.tankCapacityLiters,
-    registrationImagePath: registrationImagePath ?? this.registrationImagePath,
-    taxTokenImagePath: taxTokenImagePath ?? this.taxTokenImagePath,
-    fitnessImagePath: fitnessImagePath ?? this.fitnessImagePath,
-    fitnessExpiryDate: fitnessExpiryDate ?? this.fitnessExpiryDate,
-    isRental: isRental ?? this.isRental,
-  );
+    double? manualOdometer,
+  }) =>
+      Vehicle(
+        id: id ?? this.id,
+        name: name ?? this.name,
+        type: type ?? this.type,
+        make: make ?? this.make,
+        model: model ?? this.model,
+        year: year ?? this.year,
+        licensePlate: licensePlate ?? this.licensePlate,
+        initialOdometer: initialOdometer ?? this.initialOdometer,
+        currentOdometer: currentOdometer ?? this.currentOdometer,
+        createdAt: createdAt ?? this.createdAt,
+        color: color ?? this.color,
+        notes: notes ?? this.notes,
+        tankCapacityLiters: tankCapacityLiters ?? this.tankCapacityLiters,
+        registrationImagePath:
+            registrationImagePath ?? this.registrationImagePath,
+        taxTokenImagePath: taxTokenImagePath ?? this.taxTokenImagePath,
+        fitnessImagePath: fitnessImagePath ?? this.fitnessImagePath,
+        fitnessExpiryDate: fitnessExpiryDate ?? this.fitnessExpiryDate,
+        isRental: isRental ?? this.isRental,
+        manualOdometer: manualOdometer ?? this.manualOdometer,
+      );
 }

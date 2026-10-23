@@ -200,7 +200,8 @@ void main() {
     await settle(tester);
     entries = await sl<GetFuelEntriesByVehicle>()('it-car');
     expect(entries.length, 3);
-    // The deleted fill set the odometer; it falls back to the last record.
-    expect((await sl<GetVehicleById>()('it-car'))!.currentOdometer, 1500);
+    // The deleted fill set the odometer; it falls back to the highest
+    // remaining record, which includes the manual 1650 reading.
+    expect((await sl<GetVehicleById>()('it-car'))!.currentOdometer, 1650);
   });
 }

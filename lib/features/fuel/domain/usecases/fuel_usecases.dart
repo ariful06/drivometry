@@ -109,6 +109,7 @@ class SyncVehicleOdometer {
       remaining: [
         for (final entry in fuel) entry.odometer,
         for (final entry in maintenance) entry.odometer,
+        if (vehicle.manualOdometer case final manual?) manual,
       ],
       replacedOdometer: replacedOdometer,
     );
