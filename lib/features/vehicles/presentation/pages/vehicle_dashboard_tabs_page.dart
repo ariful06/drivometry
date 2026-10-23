@@ -14,6 +14,7 @@ import '../../../maintenance/presentation/widgets/maintenance_entry_tile.dart';
 import '../../domain/entities/vehicle.dart';
 import '../../domain/usecases/vehicle_usecases.dart';
 import '../cubits/vehicle_cubit.dart';
+import '../widgets/update_odometer_sheet.dart';
 
 /// Tabbed dashboard (Fuel Log + Maintenance) for a vehicle.
 /// The vehicle header tile is tappable and opens the vehicle details screen.
@@ -26,9 +27,11 @@ class VehicleDashboardTabsPage extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-            create: (_) => sl<FuelCubit>()..watchForVehicle(vehicle.id)),
+          create: (_) => sl<FuelCubit>()..watchForVehicle(vehicle.id),
+        ),
         BlocProvider(
-            create: (_) => sl<MaintenanceCubit>()..watchForVehicle(vehicle.id)),
+          create: (_) => sl<MaintenanceCubit>()..watchForVehicle(vehicle.id),
+        ),
       ],
       child: _VehicleDashboardTabsView(vehicle: vehicle),
     );
@@ -137,7 +140,10 @@ class _VehicleDashboardTabsViewState extends State<_VehicleDashboardTabsView>
                 if (mounted) await _refetchVehicle();
               },
               borderRadius: BorderRadius.circular(16),
-              child: _VehicleHeaderCard(vehicle: _currentVehicle),
+              child: _VehicleHeaderCard(
+                vehicle: _currentVehicle,
+                onUpdateOdometer: _updateOdometer,
+              ),
             ),
           ),
           Expanded(
@@ -190,6 +196,20 @@ class _VehicleDashboardTabsViewState extends State<_VehicleDashboardTabsView>
     );
   }
 
+  Future<void> _updateOdometer() async {
+    final updated = await showUpdateOdometerSheet(context, _currentVehicle);
+    if (updated == null || !mounted) return;
+    setState(() => _currentVehicle = updated);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Odometer updated to '
+          '${Formatters.formatDistance(updated.currentOdometer)}',
+        ),
+      ),
+    );
+  }
+
   void _confirmDelete(BuildContext context) {
     showDialog<void>(
       context: context,
@@ -237,10 +257,7 @@ class _ModernTabBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: colors.cardBackground,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: colors.divider.withOpacity(0.6),
-          width: 1,
-        ),
+        border: Border.all(color: colors.divider.withOpacity(0.6), width: 1),
         boxShadow: [
           BoxShadow(
             color: theme.colorScheme.shadow.withOpacity(0.06),
@@ -350,8 +367,12 @@ class _TabSegment extends StatelessWidget {
 }
 
 class _VehicleHeaderCard extends StatelessWidget {
-  const _VehicleHeaderCard({required this.vehicle});
+  const _VehicleHeaderCard({
+    required this.vehicle,
+    required this.onUpdateOdometer,
+  });
   final Vehicle vehicle;
+  final VoidCallback onUpdateOdometer;
 
   @override
   Widget build(BuildContext context) {
@@ -384,39 +405,59 @@ class _VehicleHeaderCard extends StatelessWidget {
               children: [
                 Text(
                   '${vehicle.make} ${vehicle.model}',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleSmall
-                      ?.copyWith(fontWeight: FontWeight.w700),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
                 ),
                 Text(
                   '${vehicle.year} • ${vehicle.licensePlate}',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: colors.textSecondary),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: colors.textSecondary),
                 ),
               ],
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                Formatters.formatDistance(vehicle.currentOdometer),
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: Theme.of(context).colorScheme.primary,
+          Tooltip(
+            message: 'Update odometer',
+            child: InkWell(
+              key: const ValueKey('update_odometer_button'),
+              onTap: onUpdateOdometer,
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      Formatters.formatDistance(vehicle.currentOdometer),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
                     ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.edit_outlined,
+                          size: 12,
+                          color: colors.textSecondary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Odometer',
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodySmall
+                              ?.copyWith(color: colors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-              Text(
-                'Odometer',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: colors.textSecondary),
-              ),
-            ],
+            ),
           ),
         ],
       ),
@@ -473,8 +514,9 @@ class _FuelList extends StatelessWidget {
       entries.cast<FuelEntry>(),
       tankCapacityLiters: tankCapacityLiters,
     );
-    final consumptionByEntryId =
-        FuelConsumptionCalculator.byEndEntryId(segments);
+    final consumptionByEntryId = FuelConsumptionCalculator.byEndEntryId(
+      segments,
+    );
     final latestConsumption = segments.isEmpty ? null : segments.last;
 
     return CustomScrollView(
@@ -593,9 +635,9 @@ class _FuelHeroInsight extends StatelessWidget {
             textBaseline: TextBaseline.alphabetic,
             children: [
               Text(
-                Formatters.formatFuelEfficiency(mileagePerLiter)
-                    .split(' ')
-                    .first,
+                Formatters.formatFuelEfficiency(
+                  mileagePerLiter,
+                ).split(' ').first,
                 style: theme.textTheme.headlineMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: colors.maintenanceColor,
@@ -716,8 +758,9 @@ class _MaintenanceTab extends StatelessWidget {
         return switch (state) {
           MaintenanceInitial() => const SizedBox.shrink(),
           MaintenanceLoading() => const LoadingOverlay(),
-          MaintenanceError(:final message) =>
-            Center(child: Text('Error: $message')),
+          MaintenanceError(:final message) => Center(
+              child: Text('Error: $message'),
+            ),
           MaintenanceLoaded(:final entries) => entries.isEmpty
               ? const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 24, vertical: 48),
@@ -739,10 +782,7 @@ class _MaintenanceTab extends StatelessWidget {
 }
 
 class _MaintenanceList extends StatelessWidget {
-  const _MaintenanceList({
-    required this.entries,
-    this.currentVehicleOdometer,
-  });
+  const _MaintenanceList({required this.entries, this.currentVehicleOdometer});
   final List entries;
   final double? currentVehicleOdometer;
 

@@ -74,7 +74,8 @@ class AppRouter {
             path: '/vehicles/:id/details',
             builder: (context, state) {
               final id = state.pathParameters['id']!;
-              final vehicle = state.extra is Vehicle ? state.extra as Vehicle : null;
+              final vehicle =
+                  state.extra is Vehicle ? state.extra as Vehicle : null;
               return VehicleDetailsRoutePage(vehicleId: id, vehicle: vehicle);
             },
           ),
@@ -107,49 +108,60 @@ class AppRouter {
             path: '/vehicles/:id',
             builder: (context, state) {
               final id = state.pathParameters['id']!;
-              final vehicle = state.extra is Vehicle ? state.extra as Vehicle : null;
+              final vehicle =
+                  state.extra is Vehicle ? state.extra as Vehicle : null;
               return VehicleDashboardPage(vehicleId: id, vehicle: vehicle);
             },
           ),
-      GoRoute(
-        path: '/vehicles/:id/fuel/add',
-        builder: (context, state) {
-          final vehicle = state.extra as Vehicle;
-          return AddFuelEntryPage(vehicle: vehicle);
-        },
-      ),
-      GoRoute(
-        path: '/vehicles/:vehicleId/fuel/:entryId',
-        builder: (context, state) {
-          final args = state.extra as FuelEntryDetailArgs;
-          return FuelEntryDetailPage(args: args);
-        },
-      ),
-      GoRoute(
-        path: '/vehicles/:id/maintenance/add',
-        builder: (context, state) {
-          final vehicle = state.extra as Vehicle;
-          return AddMaintenancePage(vehicle: vehicle);
-        },
-      ),
-      GoRoute(
-        path: '/rentals/add',
-        builder: (context, state) => const AddRentalEntryPage(),
-      ),
-      GoRoute(
-        path: '/rentals/:id/edit',
-        builder: (context, state) {
-          final entry = state.extra as RentalEntry;
-          return AddRentalEntryPage(initialEntry: entry);
-        },
-      ),
-      GoRoute(
-        path: '/rentals/:id',
-        builder: (context, state) {
-          final entry = state.extra as RentalEntry;
-          return RentalEntryDetailPage(entry: entry);
-        },
-      ),
+          GoRoute(
+            path: '/vehicles/:id/fuel/add',
+            builder: (context, state) {
+              final vehicle = state.extra as Vehicle;
+              return AddFuelEntryPage(vehicle: vehicle);
+            },
+          ),
+          GoRoute(
+            path: '/vehicles/:vehicleId/fuel/:entryId/edit',
+            builder: (context, state) {
+              final args = state.extra as FuelEntryEditArgs;
+              return AddFuelEntryPage(
+                vehicle: args.vehicle,
+                initialEntry: args.entry,
+              );
+            },
+          ),
+          GoRoute(
+            path: '/vehicles/:vehicleId/fuel/:entryId',
+            builder: (context, state) {
+              final args = state.extra as FuelEntryDetailArgs;
+              return FuelEntryDetailPage(args: args);
+            },
+          ),
+          GoRoute(
+            path: '/vehicles/:id/maintenance/add',
+            builder: (context, state) {
+              final vehicle = state.extra as Vehicle;
+              return AddMaintenancePage(vehicle: vehicle);
+            },
+          ),
+          GoRoute(
+            path: '/rentals/add',
+            builder: (context, state) => const AddRentalEntryPage(),
+          ),
+          GoRoute(
+            path: '/rentals/:id/edit',
+            builder: (context, state) {
+              final entry = state.extra as RentalEntry;
+              return AddRentalEntryPage(initialEntry: entry);
+            },
+          ),
+          GoRoute(
+            path: '/rentals/:id',
+            builder: (context, state) {
+              final entry = state.extra as RentalEntry;
+              return RentalEntryDetailPage(entry: entry);
+            },
+          ),
         ],
       );
 
