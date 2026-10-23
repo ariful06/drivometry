@@ -9,6 +9,7 @@ import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_cubit.dart';
 import 'features/maintenance/domain/usecases/maintenance_usecases.dart';
+import 'features/notifications/domain/notification_service.dart';
 import 'features/startup/presentation/cubits/startup_cubit.dart';
 import 'core/settings/app_settings.dart';
 import 'injection_container.dart';
@@ -16,9 +17,15 @@ import 'injection_container.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   _attachErrorHandlers();
-  runApp(
-    await _initApp(),
-  );
+  final app = await _initApp();
+  runApp(app);
+  if (app is DrivometryApp) {
+    // Ask for notification permission once the first screen is up, instead
+    // of holding startup on a blank screen behind the system prompt.
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => sl<NotificationService>().requestPermissions(),
+    );
+  }
 }
 
 /// Ensures framework errors are reported. In debug we print; in release

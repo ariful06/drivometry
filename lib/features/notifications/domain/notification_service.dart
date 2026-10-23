@@ -5,13 +5,19 @@ import 'package:timezone/timezone.dart' as tz;
 import '../../../core/constants/app_constants.dart';
 
 abstract class NotificationService {
+  /// Sets up the plugin without asking for permission, so startup never
+  /// waits on a system prompt.
   Future<void> initialize();
+
+  /// Asks the OS for notification permission (no-op once answered).
+  Future<void> requestPermissions();
   Future<void> scheduleMaintenanceReminder({
     required int id,
     required String title,
     required String body,
     required DateTime scheduledDate,
   });
+
   /// Schedules 8 daily reminders at 09:00 local: today and the next 7 days.
   /// Uses ids [baseId, baseId+1, ..., baseId+7].
   Future<void> scheduleOdometerDueReminders({
@@ -20,6 +26,7 @@ abstract class NotificationService {
     required String body,
   });
   Future<void> cancelNotification(int id);
+
   /// Cancels notifications with ids [baseId, baseId+1, ..., baseId+count-1].
   Future<void> cancelNotificationRange(int baseId, int count);
   Future<void> cancelAllNotifications();
@@ -40,20 +47,31 @@ class NotificationServiceImpl implements NotificationService {
       '@mipmap/ic_launcher',
     );
     const iosSettings = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
     );
     const initSettings = InitializationSettings(
       android: androidSettings,
       iOS: iosSettings,
     );
     await _plugin.initialize(initSettings);
+  }
 
-    await _plugin
-        .resolvePlatformSpecificImplementation<
-        AndroidFlutterLocalNotificationsPlugin>()
-        ?.requestNotificationsPermission();
+  @override
+  Future<void> requestPermissions() async {
+    try {
+      await _plugin
+          .resolvePlatformSpecificImplementation<
+              IOSFlutterLocalNotificationsPlugin>()
+          ?.requestPermissions(alert: true, badge: true, sound: true);
+      await _plugin
+          .resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>()
+          ?.requestNotificationsPermission();
+    } catch (_) {
+      // Reminders still work in-app; never crash on a permission prompt.
+    }
   }
 
   @override
@@ -73,7 +91,7 @@ class NotificationServiceImpl implements NotificationService {
         _details(),
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
-        UILocalNotificationDateInterpretation.absoluteTime,
+            UILocalNotificationDateInterpretation.absoluteTime,
       );
     } catch (_) {
       // Non-critical — never block the save flow
@@ -81,20 +99,20 @@ class NotificationServiceImpl implements NotificationService {
   }
 
   NotificationDetails _details() => const NotificationDetails(
-    android: AndroidNotificationDetails(
-      AppConstants.notificationChannelId,
-      AppConstants.notificationChannelName,
-      channelDescription: AppConstants.notificationChannelDesc,
-      importance: Importance.high,
-      priority: Priority.high,
-      icon: '@mipmap/ic_launcher',
-    ),
-    iOS: DarwinNotificationDetails(
-      presentAlert: true,
-      presentBadge: true,
-      presentSound: true,
-    ),
-  );
+        android: AndroidNotificationDetails(
+          AppConstants.notificationChannelId,
+          AppConstants.notificationChannelName,
+          channelDescription: AppConstants.notificationChannelDesc,
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      );
 
   @override
   Future<void> scheduleOdometerDueReminders({
