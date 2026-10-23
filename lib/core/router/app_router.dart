@@ -17,6 +17,12 @@ import '../../features/vehicles/presentation/pages/add_vehicle_page.dart';
 import '../../features/vehicles/presentation/pages/vehicle_dashboard_page.dart';
 import '../../features/vehicles/presentation/pages/vehicle_details_page.dart';
 import '../../features/vehicles/presentation/pages/vehicles_page.dart';
+import '../../features/settings/presentation/pages/settings_page.dart';
+import '../../features/fuel/presentation/pages/fuel_statistics_page.dart';
+import '../../features/expenses/presentation/pages/add_expense_page.dart';
+import '../../features/expenses/presentation/pages/expenses_page.dart';
+import '../../features/parts/presentation/pages/add_part_page.dart';
+import '../../features/parts/presentation/pages/parts_page.dart';
 import '../shell/main_shell.dart';
 
 class AppRouter {
@@ -50,6 +56,10 @@ class AppRouter {
             ],
           ),
           GoRoute(
+            path: '/settings',
+            builder: (context, state) => const SettingsPage(),
+          ),
+          GoRoute(
             path: '/vehicles/add',
             builder: (context, state) => const AddVehiclePage(),
           ),
@@ -67,6 +77,31 @@ class AppRouter {
               final vehicle = state.extra is Vehicle ? state.extra as Vehicle : null;
               return VehicleDetailsRoutePage(vehicleId: id, vehicle: vehicle);
             },
+          ),
+          GoRoute(
+            path: '/vehicles/:id/parts',
+            builder: (context, state) =>
+                PartsPage(vehicle: state.extra as Vehicle),
+          ),
+          GoRoute(
+            path: '/vehicles/:id/parts/add',
+            builder: (context, state) =>
+                AddPartPage(args: state.extra as AddPartArgs),
+          ),
+          GoRoute(
+            path: '/vehicles/:id/expenses',
+            builder: (context, state) =>
+                ExpensesPage(vehicle: state.extra as Vehicle),
+          ),
+          GoRoute(
+            path: '/vehicles/:id/expenses/add',
+            builder: (context, state) =>
+                AddExpensePage(vehicle: state.extra as Vehicle),
+          ),
+          GoRoute(
+            path: '/vehicles/:id/fuel-stats',
+            builder: (context, state) =>
+                FuelStatisticsPage(vehicle: state.extra as Vehicle),
           ),
           GoRoute(
             path: '/vehicles/:id',
