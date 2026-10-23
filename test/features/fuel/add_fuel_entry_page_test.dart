@@ -8,14 +8,20 @@ import 'package:drivometry/injection_container.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'fuel_test_fakes.dart';
 
 late InMemoryFuelRepository fuelRepo;
 late InMemoryVehicleRepository vehicleRepo;
 
-Future<void> _registerFakes(List<FuelEntry> seed, Vehicle vehicle) async {
+Future<void> _registerFakes(
+  List<FuelEntry> seed,
+  Vehicle vehicle, {
+  bool keepPreferences = false,
+}) async {
   await sl.reset();
+  if (!keepPreferences) SharedPreferences.setMockInitialValues({});
   fuelRepo = InMemoryFuelRepository(seed);
   vehicleRepo = InMemoryVehicleRepository(vehicle);
   sl
@@ -30,8 +36,9 @@ Future<void> _pumpPage(
   WidgetTester tester,
   Vehicle vehicle, {
   List<FuelEntry> history = const [],
+  bool keepPreferences = false,
 }) async {
-  await _registerFakes(history, vehicle);
+  await _registerFakes(history, vehicle, keepPreferences: keepPreferences);
   tester.view.physicalSize = const Size(1080, 6000);
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
@@ -217,5 +224,50 @@ void main() {
     expect(saved.fuelLevelPercent, 80);
     expect(saved.isFullTank, isFalse);
     expect(saved.fuelEfficiency, closeTo(30, 1e-9));
+  });
+
+  testWidgets('new fill prefills price from the last fill', (tester) async {
+    await _pumpPage(tester, testVehicle(), history: history);
+
+    final price = tester.widget<TextFormField>(_field('Cost per liter *'));
+    expect(price.controller!.text, '100');
+    expect(find.textContaining('Last fill:'), findsOneWidget);
+  });
+
+  testWidgets('next fill reopens in the modes the last one used',
+      (tester) async {
+    await _pumpPage(tester, testVehicle(), history: history);
+
+    // Log a partial fill by odometer and total paid.
+    await tester.tap(find.text('Full odometer'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Full tank'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Total paid'));
+    await tester.pumpAndSettle();
+    await tester.enterText(_field('Odometer (km) *'), '1350');
+    await tester.enterText(_field('Total paid *'), '1500');
+    await _save(tester);
+
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getBool('fuel_form_trip_mode_v1'), isFalse);
+    expect(prefs.getBool('fuel_form_total_paid_v1'), isTrue);
+  });
+
+  testWidgets('remembered modes are restored on the next fill', (tester) async {
+    await _pumpPage(tester, testVehicle(tankCapacity: null), history: history);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('fuel_form_trip_mode_v1', false);
+    await prefs.setBool('fuel_form_total_paid_v1', true);
+
+    await _pumpPage(
+      tester,
+      testVehicle(tankCapacity: null),
+      history: history,
+      keepPreferences: true,
+    );
+
+    expect(find.byKey(const ValueKey('fuel_full_odo_field')), findsOneWidget);
+    expect(_field('Total paid *'), findsOneWidget);
   });
 }

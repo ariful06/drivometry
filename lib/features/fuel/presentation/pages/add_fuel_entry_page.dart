@@ -16,6 +16,7 @@ import '../../../../core/utils/receipt_storage.dart';
 import '../../../../injection_container.dart';
 import '../../../vehicles/domain/entities/vehicle.dart';
 import '../../../vehicles/domain/usecases/vehicle_usecases.dart';
+import '../../data/preferences/fuel_form_preferences.dart';
 import '../../domain/entities/fuel_entry.dart';
 import '../../domain/services/fuel_consumption_calculator.dart';
 import '../../domain/usecases/fuel_usecases.dart';
@@ -333,6 +334,9 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
       // Newest first, so the last fill is the head of the history.
       final saved = await sl<GetFuelEntriesByVehicle>()(widget.vehicle.id);
       final initial = widget.initialEntry;
+      final defaults = initial == null
+          ? await const FuelFormPreferences().load(widget.vehicle.id)
+          : null;
       final history = initial == null
           ? saved
           : saved.where((entry) => entry.id != initial.id).toList();
@@ -349,6 +353,16 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
             final trip = initial.odometer - previous.odometer;
             _useTripMode = initial.tripDistance != null && trip > 0;
             if (_useTripMode) _tripKmCtrl.text = trip.toStringAsFixed(0);
+          }
+          if (defaults != null && previous != null) {
+            // New fill: open the way the last one was entered, at its price.
+            _useTripMode = defaults.useTripMode;
+            if (!_fullTankUsesCapacity) {
+              _useTotalPaidForQuantity = defaults.useTotalPaidForQuantity;
+            }
+            if (_costPerLiterCtrl.text.trim().isEmpty) {
+              _costPerLiterCtrl.text = _editableNumber(previous.costPerLiter);
+            }
           }
         });
         _bumpMileagePreview();
@@ -836,7 +850,10 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
                 prefixIcon: const Icon(Icons.payments_outlined),
                 helperText: _quantityFromTotalPaid
                     ? 'Used with total paid to calculate liters'
-                    : null,
+                    : !_isEditing && _lastFuelEntry != null
+                        ? 'Last fill: '
+                            '${Formatters.formatCurrency(_lastFuelEntry!.costPerLiter)}'
+                        : null,
               ),
               validator: (rawValue) {
                 if (rawValue == null || rawValue.isEmpty) {
@@ -1161,6 +1178,13 @@ class _AddFuelEntryPageState extends State<AddFuelEntryPage> {
       }
 
       await sl<AddFuelEntry>()(entry);
+      await const FuelFormPreferences().save(
+        widget.vehicle.id,
+        FuelFormDefaults(
+          useTripMode: _useTripMode,
+          useTotalPaidForQuantity: _useTotalPaidForQuantity,
+        ),
+      );
       // Full-tank consumption spans several fills, so derive it from the whole chain.
       await sl<RecalculateFuelConsumption>()(widget.vehicle.id);
 
